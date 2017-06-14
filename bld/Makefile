@@ -1,0 +1,50 @@
+EXEC = tempalarm
+
+OBJECTS = \
+	main.o \
+
+DEPS += \
+	libcapybara \
+	libmspware \
+	libmcppot \
+	libio \
+	libmsp \
+
+export MAIN_CLOCK_FREQ = 8000000
+
+export CLOCK_FREQ_ACLK = 32768
+export CLOCK_FREQ_SMCLK = $(MAIN_CLOCK_FREQ)
+
+export LIBMSP_CLOCK_SOURCE = DCO
+export LIBMSP_DCO_FREQ = $(MAIN_CLOCK_FREQ)
+export LIBMSP_SLEEP_TIMER = B.0.0
+export LIBMSP_SLEEP_TIMER_CLK = ACLK
+export LIBMSP_SLEEP_TIMER_DIV = 8*1
+
+# To use add: libmspsoftuart to DEPS
+#export LIBIO_BACKEND = swuart
+#export LIBMSPSOFTUART_PIN_TX = 3.6
+#export LIBMSPSOFTUART_BAUDRATE = 9600
+#export LIBMSPSOFTUART_CLOCK_FREQ = $(MAIN_CLOCK_FREQ)
+#export LIBMSPSOFTUART_TIMER = B.0.5
+
+export LIBIO_BACKEND = hwuart
+export LIBMSP_UART_IDX = 0
+export LIBMSP_UART_PIN_TX = 2.0
+export LIBMSP_UART_BAUDRATE = 115200
+export LIBMSP_UART_CLOCK = SMCLK
+
+export LIBCAPYBARA_PIN_VBOOST_OK = 2.3
+export LIBCAPYBARA_PIN_BOOST_SW = 2.7
+
+export LIBCAPYBARA_NUM_BANKS = 4
+export LIBCAPYBARA_SWITCH_DESIGN = NC
+export LIBCAPYBARA_SWITCH_CONTROL = TWO_PIN
+
+export LIBCAPYBARA_BANK_PORT_0 = J.0
+export LIBCAPYBARA_BANK_PORT_1 = J.2
+export LIBCAPYBARA_BANK_PORT_2 = J.4
+export LIBCAPYBARA_BANK_PORT_3 = 4.0
+
+override VOLTAGE = 2400 # programming voltage in mV
+export VOLTAGE

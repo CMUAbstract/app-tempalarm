@@ -1,0 +1,18 @@
+[submodule "ext/maker"]
+	path = ext/maker
+	url = /afs/ece.cmu.edu/project/abstract/repos/maker
+[submodule "ext/libmsp"]
+	path = ext/libmsp
+	url = /afs/ece.cmu.edu/project/abstract/repos/libmsp
+[submodule "ext/libcapybara"]
+	path = ext/libcapybara
+	url = /afs/ece.cmu.edu/project/abstract/repos/libcapybara
+[submodule "ext/libio"]
+	path = ext/libio
+	url = /afs/ece.cmu.edu/project/abstract/repos/libio
+[submodule "ext/libmspware"]
+	path = ext/libmspware
+	url = /afs/ece.cmu.edu/project/abstract/repos/libmspware
+[submodule "ext/libmcppot"]
+	path = ext/libmcppot
+	url = /afs/ece.cmu.edu/project/abstract/repos/libmcppot
