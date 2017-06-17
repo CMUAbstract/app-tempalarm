@@ -9,11 +9,14 @@
 #include <libmsp/gpio.h>
 #include <libmsp/periph.h>
 #include <libmsp/sleep.h>
+#include <libmsp/temp.h>
 #include <libio/console.h>
 
 #include <libcapybara/capybara.h>
 
 #include "pins.h"
+
+#define NUM_TEMP_SAMPLES 16
 
 void i2c_setup(void) {
   /*
@@ -64,6 +67,27 @@ int main() {
 
     INIT_CONSOLE();
     LOG("TempAlarm v1.0\r\n");
+
+#if 0 // TEST: turn on radio
+    GPIO(PORT_RADIO_SW, OUT) |= BIT(PIN_RADIO_SW);
+#else
+
+    while (1) {
+        P3OUT |= BIT6;
+        int temp = 0;
+        for (int i = 0; i < NUM_TEMP_SAMPLES; ++i) {
+            int temp_sample = msp_sample_temperature();
+            temp += temp_sample;
+            LOG2("temp %i\r\n", temp_sample);
+        }
+        temp /= NUM_TEMP_SAMPLES;
+        LOG("temp avg: %i\r\n", temp);
+        P3OUT &= ~BIT6;
+
+        // collect a sample every second
+        msp_sleep(4096);
+    }
+#endif
 
 #if 0 // TEST: turn on radio
     GPIO(PORT_RADIO_SW, OUT) |= BIT(PIN_RADIO_SW);
