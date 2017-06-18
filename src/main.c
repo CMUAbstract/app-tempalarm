@@ -63,6 +63,12 @@ int main() {
     GPIO(PORT_RADIO_SW, OUT) &= ~BIT(PIN_RADIO_SW);
     GPIO(PORT_RADIO_SW, DIR) |= BIT(PIN_RADIO_SW);
 
+    // TODO: do it here?
+    //capybara_config_banks(0x0);
+    capybara_config_banks(0x1);
+    capybara_wait_for_supply();
+    capybara_shutdown_on_deep_discharge(); // noop if already below threshold
+
     msp_clock_setup();
 
     INIT_CONSOLE();
@@ -86,6 +92,9 @@ int main() {
 
         // collect a sample every second
         msp_sleep(4096);
+
+        //capybara_shutdown();
+
     }
 #endif
 
