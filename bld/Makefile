@@ -22,6 +22,8 @@ export LIBMSP_SLEEP_TIMER = B.0.0
 export LIBMSP_SLEEP_TIMER_CLK = ACLK
 export LIBMSP_SLEEP_TIMER_DIV = 8*1
 
+export LIBMSP_TEMP = 1
+
 # To use add: libmspsoftuart to DEPS
 #export LIBIO_BACKEND = swuart
 #export LIBMSPSOFTUART_PIN_TX = 3.6
