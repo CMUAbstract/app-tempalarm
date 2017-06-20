@@ -4,6 +4,7 @@ OBJECTS = \
 	main.o \
 
 DEPS += \
+	libchain \
 	libcapybara \
 	libmspware \
 	libmcppot \

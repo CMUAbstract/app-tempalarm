@@ -16,3 +16,6 @@
 [submodule "ext/libmcppot"]
 	path = ext/libmcppot
 	url = /afs/ece.cmu.edu/project/abstract/repos/libmcppot
+[submodule "ext/libchain"]
+	path = ext/libchain
+	url = /afs/ece.cmu.edu/project/abstract/repos/libchain
