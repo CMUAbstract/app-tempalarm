@@ -73,7 +73,7 @@ typedef enum {
     PKT_TYPE_ALARM = 1,
 } pkt_type_t;
 
-typedef struct {
+typedef struct __attribute__((packed)) {
     radio_cmd_t cmd:3;
     uint8_t size:5;
 } pkt_header_t;
