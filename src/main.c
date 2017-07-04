@@ -11,6 +11,7 @@
 #include <libmsp/sleep.h>
 #include <libmsp/temp.h>
 #include <libmsp/uart.h>
+#include <libmspuartlink/uartlink.h>
 #include <libio/console.h>
 #include <libchain/chain.h>
 
@@ -20,8 +21,8 @@
 
 #define NUM_TEMP_SAMPLES 16
 
-#define SERIES_LEN       128
-#define SERIES_LEN_MASK  0x7F
+#define SERIES_LEN       8
+#define SERIES_LEN_MASK  0x07
 
 #define TEMP_NORMAL_MIN 20
 #define TEMP_NORMAL_MAX 38
@@ -64,23 +65,12 @@ CHANNEL(task_sample, task_append, msg_sample);
 SELF_CHANNEL(task_append, msg_self_series);
 CHANNEL(task_append, task_alarm, msg_series);
 
-typedef enum {
+typedef enum __attribute__((packed)) {
     RADIO_CMD_SET_ADV_PAYLOAD = 0,
 } radio_cmd_t;
 
-typedef enum {
-    PKT_TYPE_NONE = 0,
-    PKT_TYPE_ALARM = 1,
-} pkt_type_t;
-
 typedef struct __attribute__((packed)) {
-    radio_cmd_t cmd:3;
-    uint8_t size:5;
-} pkt_header_t;
-
-typedef struct {
-    pkt_type_t type;
-    pkt_header_t header;
+    radio_cmd_t cmd;
     uint8_t series[SERIES_LEN];
 } radio_pkt_t;
 
@@ -233,12 +223,9 @@ void task_alarm()
     capybara_config_banks(0x1);
 
     P3OUT |= BIT5;
-    radio_pkt.type = PKT_TYPE_ALARM;
-    radio_pkt.header.cmd = RADIO_CMD_SET_ADV_PAYLOAD;
+    radio_pkt.cmd = RADIO_CMD_SET_ADV_PAYLOAD;
 
     int len = *CHAN_IN1(int, len, CH(task_append, task_alarm));
-    radio_pkt.header.size = len;
-
     for (int j = 0; j < len; ++j) {
         int sample = *CHAN_IN1(int, series[j], CH(task_append, task_alarm));
         radio_pkt.series[j] = sample;
@@ -260,12 +247,9 @@ void task_alarm()
     P3OUT |= BIT5;
     GPIO(PORT_RADIO_SW, OUT) |= BIT(PIN_RADIO_SW);
 
-#if 0 // send data to radio
-    msp_uart_open();
-    msp_uart_send_sync((uint8_t *)&radio_pkt.header, sizeof(radio_pkt.header));
-    msp_uart_send_sync((uint8_t *)&radio_pkt.series[0], len);
-    msp_uart_close();
-#endif
+    uartlink_open_tx();
+    uartlink_send((uint8_t *)&radio_pkt.cmd, sizeof(radio_pkt.cmd) + len);
+    uartlink_close();
 
     // TODO: wait until radio is finished; for now, wait for 0.25sec
     msp_sleep(1024);

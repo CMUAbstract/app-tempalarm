@@ -19,3 +19,6 @@
 [submodule "ext/libchain"]
 	path = ext/libchain
 	url = /afs/ece.cmu.edu/project/abstract/repos/libchain
+[submodule "ext/libmspuartlink"]
+	path = ext/libmspuartlink
+	url = /afs/ece.cmu.edu/project/abstract/repos/libmspuartlink
