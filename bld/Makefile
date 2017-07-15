@@ -6,6 +6,7 @@ OBJECTS = \
 DEPS += \
 	libchain \
 	libcapybara \
+	libfxl \
 	libmspware \
 	libmcppot \
 	libmspuartlink \
@@ -50,7 +51,14 @@ export LIBMSPUARTLINK_PIN_TX = 2.5
 export LIBMSPUARTLINK_BAUDRATE = 115200
 export LIBMSPUARTLINK_CLK = SMCLK
 
+ifeq ($(BOARD_MAJOR).$(BOARD_MINOR),1.0)
+export LIBCAPYBARA_PIN_VBOOST_OK = 3.4
+export LIBCAPYBARA_PIN_VBANK_OK = 2.2
+else if ($(BOARD_MAJOR).$(BOARD_MINOR),1.1)
 export LIBCAPYBARA_PIN_VBOOST_OK = 2.3
+export LIBCAPYBARA_PIN_VBANK_OK = 2.2
+endif # BOARD_MAJOR.BOARD_MINOR
+
 export LIBCAPYBARA_PIN_BOOST_SW = 2.7
 export LIBCAPYBARA_VBANK_DIV = 10:20
 export LIBCAPYBARA_VBANK_COMP_REF = 1.2 # V

@@ -15,6 +15,10 @@
 #include <libio/console.h>
 #include <libchain/chain.h>
 
+#if BOARD_MAJOR == 1 && BOARD_MINOR == 1
+#include <libfxl/fxl6408.h>
+#endif // BOARD_{MAJOR,MINOR}
+
 #include <libcapybara/capybara.h>
 
 #include "pins.h"
@@ -76,6 +80,38 @@ typedef struct __attribute__((packed)) {
 
 static radio_pkt_t radio_pkt;
 
+static inline void radio_on()
+{
+#if BOARD_MAJOR == 1 && BOARD_MINOR == 0
+
+#if PORT_RADIO_SW != PORT_RADIO_RST // we assume this below
+#error Unexpected pin config: RAD_SW and RAD_RST not on same port
+#endif // PORT_RADIO_SW != PORT_RADIO_RST
+
+    GPIO(PORT_RADIO_SW, OUT) |= BIT(PIN_RADIO_SW) | BIT(PIN_RADIO_RST);
+    GPIO(PORT_RADIO_RST, OUT) &= ~BIT(PIN_RADIO_RST);
+
+#elif BOARD_MAJOR == 1 && BOARD_MINOR == 1
+    fxl_set(BIT_RADIO_SW | BIT_RADIO_RST);
+    fxl_clear(BIT_RADIO_RST);
+
+#else // BOARD_{MAJOR,MINOR}
+#error Unsupported board: do not know how to turn off radio (see BOARD var)
+#endif // BOARD_{MAJOR,MINOR}
+}
+
+static inline void radio_off()
+{
+#if BOARD_MAJOR == 1 && BOARD_MINOR == 0
+    GPIO(PORT_RADIO_SW, OUT) &= ~BIT(PIN_RADIO_SW);
+#elif BOARD_MAJOR == 1 && BOARD_MINOR == 1
+    fxl_clear(BIT_RADIO_SW);
+#else // BOARD_{MAJOR,MINOR}
+#error Unsupported board: do not know how to turn on radio (see BOARD var)
+#endif // BOARD_{MAJOR,MINOR}
+}
+
+#if BOARD_MAJOR == 1 && BOARD_MINOR == 1 // in this app, I2C is only needed on v1.1
 void i2c_setup(void) {
   /*
   * Select Port 1
@@ -93,12 +129,13 @@ void i2c_setup(void) {
   EUSCI_B_I2C_initMasterParam param = {0};
   param.selectClockSource = EUSCI_B_I2C_CLOCKSOURCE_SMCLK;
   param.i2cClk = CS_getSMCLK();
-  param.dataRate = EUSCI_B_I2C_SET_DATA_RATE_400KBPS;
+  param.dataRate = EUSCI_B_I2C_SET_DATA_RATE_100KBPS;
   param.byteCounterThreshold = 0;
   param.autoSTOPGeneration = EUSCI_B_I2C_NO_AUTO_STOP;
 
   EUSCI_B_I2C_initMaster(EUSCI_B0_BASE, &param);
 }
+#endif // BOARD_{MAJOR,MINOR}
 
 void init_hw() {
     msp_watchdog_disable();
@@ -117,11 +154,6 @@ void init_hw() {
 
     capybara_config_pins();
 
-    GPIO(PORT_SENSE_SW, OUT) &= ~BIT(PIN_SENSE_SW);
-    GPIO(PORT_SENSE_SW, DIR) |= BIT(PIN_SENSE_SW);
-
-    GPIO(PORT_RADIO_SW, OUT) &= ~BIT(PIN_RADIO_SW);
-    GPIO(PORT_RADIO_SW, DIR) |= BIT(PIN_RADIO_SW);
 
     // TODO: do it here?
     capybara_config_banks(0x0);
@@ -136,6 +168,27 @@ void init_hw() {
 
     INIT_CONSOLE();
     LOG("TempAlarm v1.0\r\n");
+
+#if BOARD_MAJOR == 1 && BOARD_MINOR == 0
+    GPIO(PORT_SENSE_SW, OUT) &= ~BIT(PIN_SENSE_SW);
+    GPIO(PORT_SENSE_SW, DIR) |= BIT(PIN_SENSE_SW);
+
+    GPIO(PORT_RADIO_SW, OUT) &= ~BIT(PIN_RADIO_SW);
+    GPIO(PORT_RADIO_SW, DIR) |= BIT(PIN_RADIO_SW);
+#elif BOARD_MAJOR == 1 && BOARD_MINOR == 1
+    LOG("i2c init\r\n");
+    i2c_setup();
+
+    LOG("fxl init\r\n");
+    fxl_init();
+
+    fxl_out(BIT_RADIO_SW);
+    fxl_out(BIT_RADIO_RST);
+    fxl_pull_up(BIT_CCS_WAKE);
+    // SENSE_SW is present but is not electrically correct: do not use.
+#else // BOARD_{MAJOR,MINOR}
+#error Unsupported board: do not know what pins to configure (see BOARD var)
+#endif // BOARD_{MAJOR,MINOR}
 
     LOG(".%u.\r\n", curctx->task->idx);
 }
@@ -245,7 +298,7 @@ void task_alarm()
     LOG("\r\n");
 
     P3OUT |= BIT5;
-    GPIO(PORT_RADIO_SW, OUT) |= BIT(PIN_RADIO_SW);
+    radio_on();
     msp_sleep(64); // ~15ms @ ACLK/8
 
     uartlink_open_tx();
@@ -255,7 +308,7 @@ void task_alarm()
     // TODO: wait until radio is finished; for now, wait for 0.25sec
     msp_sleep(1024);
 
-    GPIO(PORT_RADIO_SW, OUT) &= ~BIT(PIN_RADIO_SW);
+    radio_off();
     P3OUT &= ~BIT5;
 
     P3OUT |= BIT5;

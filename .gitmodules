@@ -22,3 +22,6 @@
 [submodule "ext/libmspuartlink"]
 	path = ext/libmspuartlink
 	url = /afs/ece.cmu.edu/project/abstract/repos/libmspuartlink
+[submodule "ext/libfxl"]
+	path = ext/libfxl
+	url = /afs/ece.cmu.edu/project/abstract/repos/libfxl
