@@ -246,6 +246,7 @@ void task_alarm()
 
     P3OUT |= BIT5;
     GPIO(PORT_RADIO_SW, OUT) |= BIT(PIN_RADIO_SW);
+    msp_sleep(64); // ~15ms @ ACLK/8
 
     uartlink_open_tx();
     uartlink_send((uint8_t *)&radio_pkt.cmd, sizeof(radio_pkt.cmd) + len);
