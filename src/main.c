@@ -162,7 +162,9 @@ void init_hw() {
 
 #if 1 // TEMP: don't wait when testing on continuous power only!
     capybara_wait_for_supply();
-    capybara_shutdown_on_deep_discharge(); // noop if already below threshold
+    if (capybara_shutdown_on_deep_discharge() == CB_ERROR_ALREADY_DEEPLY_DISCHARGED) {
+        capybara_shutdown();
+    }
 #endif
 
 
