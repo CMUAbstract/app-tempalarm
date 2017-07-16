@@ -154,6 +154,7 @@ void init_hw() {
 
     capybara_config_pins();
 
+    msp_clock_setup();
 
     // TODO: do it here?
     capybara_config_banks(0x0);
@@ -164,7 +165,6 @@ void init_hw() {
     capybara_shutdown_on_deep_discharge(); // noop if already below threshold
 #endif
 
-    msp_clock_setup();
 
     INIT_CONSOLE();
     LOG("TempAlarm v1.0\r\n");
