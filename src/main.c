@@ -277,7 +277,6 @@ void task_alarm()
 {
     capybara_config_banks(0x1);
 
-    P3OUT |= BIT5;
     radio_pkt.cmd = RADIO_CMD_SET_ADV_PAYLOAD;
 
     int len = *CHAN_IN1(int, len, CH(task_append, task_alarm));
@@ -285,7 +284,6 @@ void task_alarm()
         int sample = *CHAN_IN1(int, series[j], CH(task_append, task_alarm));
         radio_pkt.series[j] = sample;
     }
-    P3OUT &= ~BIT5;
 
     // TODO: send radio_pkt to radio IC over UART link
     LOG("TX PKT (len %u):\r\n", len);
@@ -313,9 +311,7 @@ void task_alarm()
     radio_off();
     P3OUT &= ~BIT5;
 
-    P3OUT |= BIT5;
     capybara_config_banks(0x0);
-    P3OUT &= ~BIT5;
 
     TRANSITION_TO(task_sample);
 }
