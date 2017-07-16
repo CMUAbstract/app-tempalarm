@@ -169,7 +169,7 @@ void init_hw() {
 
 
     INIT_CONSOLE();
-    LOG("TempAlarm v1.0\r\n");
+    LOG2("TempAlarm v1.0\r\n");
 
 #if BOARD_MAJOR == 1 && BOARD_MINOR == 0
     GPIO(PORT_SENSE_SW, OUT) &= ~BIT(PIN_SENSE_SW);
@@ -178,10 +178,10 @@ void init_hw() {
     GPIO(PORT_RADIO_SW, OUT) &= ~BIT(PIN_RADIO_SW);
     GPIO(PORT_RADIO_SW, DIR) |= BIT(PIN_RADIO_SW);
 #elif BOARD_MAJOR == 1 && BOARD_MINOR == 1
-    LOG("i2c init\r\n");
+    LOG2("i2c init\r\n");
     i2c_setup();
 
-    LOG("fxl init\r\n");
+    LOG2("fxl init\r\n");
     fxl_init();
 
     fxl_out(BIT_RADIO_SW);
