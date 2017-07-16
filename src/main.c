@@ -142,8 +142,8 @@ void init_hw() {
     msp_gpio_unlock();
 
     // TEMPORARY: debug pin
-    P3OUT &= ~(BIT5 | BIT6);
-    P3DIR |= BIT5 | BIT6;
+    P3OUT &= ~(BIT5 | BIT6 | BIT7);
+    P3DIR |= BIT5 | BIT6 | BIT7;
 
     __enable_interrupt();
 
