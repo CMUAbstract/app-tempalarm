@@ -2,6 +2,7 @@ EXEC = tempalarm
 
 OBJECTS = \
 	main.o \
+	timestamp.o \
 
 DEPS += \
 	libchain \
@@ -13,6 +14,9 @@ DEPS += \
 	libio \
 	libmsp \
 
+# Local config
+TIMESTAMPS = 1
+
 export MAIN_CLOCK_FREQ = 8000000
 
 export CLOCK_FREQ_ACLK = 32768
@@ -21,9 +25,17 @@ export CLOCK_FREQ_MCLK = $(MAIN_CLOCK_FREQ)
 
 export LIBMSP_CLOCK_SOURCE = DCO
 export LIBMSP_DCO_FREQ = $(MAIN_CLOCK_FREQ)
+
 export LIBMSP_SLEEP_TIMER = B.0.0
 export LIBMSP_SLEEP_TIMER_CLK = ACLK
 export LIBMSP_SLEEP_TIMER_DIV = 8*1
+
+ifeq ($(TIMESTAMPS),1)
+override CFLAGS += -DTIMESTAMPS
+export LIBMSP_TICK_TIMER = A.0.0
+export LIBMSP_TICK_TIMER_CLK = ACLK
+export LIBMSP_TICK_TIMER_DIV = 8*8
+endif # TIMESTAMPS
 
 export LIBMSP_TEMP = 1
 

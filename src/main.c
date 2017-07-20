@@ -21,6 +21,10 @@
 
 #include <libcapybara/capybara.h>
 
+#ifdef TIMESTAMPS
+#include <libmsp/tick.h>
+#endif // TIMESTAMPS
+
 #include "pins.h"
 
 #define NUM_TEMP_SAMPLES 16
@@ -171,6 +175,11 @@ void init_hw() {
     INIT_CONSOLE();
     LOG2("TempAlarm v1.0\r\n");
 
+#ifdef TIMESTAMPS
+    LOG("tick,temp_c\r\n");
+    msp_tick_start();
+#endif // TIMESTAMPS
+
 #if BOARD_MAJOR == 1 && BOARD_MINOR == 0
     GPIO(PORT_SENSE_SW, OUT) &= ~BIT(PIN_SENSE_SW);
     GPIO(PORT_SENSE_SW, DIR) |= BIT(PIN_SENSE_SW);
@@ -220,6 +229,11 @@ void task_sample()
     temp /= NUM_TEMP_SAMPLES;
     LOG2("temp avg: %i\r\n", temp);
     P3OUT &= ~BIT6;
+
+#ifdef TIMESTAMPS
+    uint32_t timestamp = msp_ticks();
+    LOG("%u:%u,%i\r\n", (uint16_t)(timestamp >> 16), (uint16_t)(timestamp & 0xFFFF), temp);
+#endif // TIMESTAMPS
 
     CHAN_OUT1(int, sample, temp, CH(task_sample, task_append));
 
