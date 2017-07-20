@@ -192,7 +192,7 @@ void init_hw() {
 #error Unsupported board: do not know what pins to configure (see BOARD var)
 #endif // BOARD_{MAJOR,MINOR}
 
-    LOG(".%u.\r\n", curctx->task->idx);
+    LOG2(".%u.\r\n", curctx->task->idx);
 }
 
 void task_init()
@@ -218,7 +218,7 @@ void task_sample()
         LOG2("temp %i\r\n", temp_sample);
     }
     temp /= NUM_TEMP_SAMPLES;
-    LOG("temp avg: %i\r\n", temp);
+    LOG2("temp avg: %i\r\n", temp);
     P3OUT &= ~BIT6;
 
     CHAN_OUT1(int, sample, temp, CH(task_sample, task_append));
@@ -229,20 +229,20 @@ void task_sample()
 void task_append()
 {
     int temp_sample = *CHAN_IN1(int, sample, CH(task_sample, task_append));
-    LOG("temp %i\r\n", temp_sample);
+    LOG2("temp %i\r\n", temp_sample);
 
     int idx = *CHAN_IN2(int, idx, CH(task_init, task_append),
                                  SELF_IN_CH(task_append));
 
     CHAN_OUT1(int, series[idx], temp_sample , SELF_OUT_CH(task_append));
-    LOG("series[%u] <- %i\r\n", idx, temp_sample);
+    LOG2("series[%u] <- %i\r\n", idx, temp_sample);
 
     idx = (idx + 1) & SERIES_LEN_MASK; // assumes power of 2 len
     CHAN_OUT1(int, idx, idx, SELF_OUT_CH(task_append));
 
     if (!(TEMP_NORMAL_MIN <= temp_sample && temp_sample <= TEMP_NORMAL_MAX)) {
 
-        LOG("ALARM!\r\n");
+        LOG2("ALARM!\r\n");
 
         // iterate from oldest to newest sample
         int start_idx = (idx - 1) & SERIES_LEN_MASK; // index into circ buffer (-1 cause already inc'ed)
@@ -286,16 +286,16 @@ void task_alarm()
     }
 
     // TODO: send radio_pkt to radio IC over UART link
-    LOG("TX PKT (len %u):\r\n", len);
+    LOG2("TX PKT (len %u):\r\n", len);
     int j;
     for (j = 0; j < len; j += 16) {
         for (int c = 0; c < 16 && j + c < len; ++c)
-            LOG("%02i ", (int)radio_pkt.series[j + c]);
-        LOG("\r\n");
+            LOG2("%02i ", (int)radio_pkt.series[j + c]);
+        LOG2("\r\n");
     }
     for (; j < len % 16; ++j)
-        LOG("%i ", (int)radio_pkt.series[j]);
-    LOG("\r\n");
+        LOG2("%i ", (int)radio_pkt.series[j]);
+    LOG2("\r\n");
 
     P3OUT |= BIT5;
     radio_on();
