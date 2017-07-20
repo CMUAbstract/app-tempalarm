@@ -16,6 +16,8 @@ DEPS += \
 
 # Local config
 TIMESTAMPS = 1
+TEMP_SENSOR = internal
+#TEMP_SENSOR = external
 
 export MAIN_CLOCK_FREQ = 8000000
 
@@ -37,7 +39,18 @@ export LIBMSP_TICK_TIMER_CLK = ACLK
 export LIBMSP_TICK_TIMER_DIV = 8*8
 endif # TIMESTAMPS
 
+ifeq ($(TEMP_SENSOR),internal)
+override CFLAGS += -DTEMP_SENSOR_INTERNAL
 export LIBMSP_TEMP = 1
+else ifeq ($(TEMP_SENSOR),external)
+override CFLAGS += -DTEMP_SENSOR_EXTERNAL
+DEPS += libtemp
+export LIBMSP_TEMP = 0
+export LIBTEMP_SENSOR = tmp36
+export LIBTEMP_ADC_CHAN = 5 # pin 1.5
+else # TEMP_SENSOR
+$(error Invalid choice for TEMP_SENSOR)
+endif # TEMP_SENSOR
 
 # To use add: libmspsoftuart to DEPS
 #export LIBIO_BACKEND = swuart

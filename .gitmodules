@@ -25,3 +25,6 @@
 [submodule "ext/libfxl"]
 	path = ext/libfxl
 	url = /afs/ece.cmu.edu/project/abstract/repos/libfxl
+[submodule "ext/libtemp"]
+	path = ext/libtemp
+	url = /afs/ece.cmu.edu/project/abstract/repos/libtemp

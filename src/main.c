@@ -25,6 +25,10 @@
 #include <libmsp/tick.h>
 #endif // TIMESTAMPS
 
+#ifdef TEMP_SENSOR_EXTERNAL
+#include <libtemp/temp.h>
+#endif // TEMP_SENSOR_EXTERNAL
+
 #include "pins.h"
 
 #define NUM_TEMP_SAMPLES 16
@@ -222,7 +226,11 @@ void task_sample()
     P3OUT |= BIT6;
     int temp = 0;
     for (int i = 0; i < NUM_TEMP_SAMPLES; ++i) {
+#if defined(TEMP_SENSOR_INTERNAL)
         int temp_sample = msp_sample_temperature();
+#elif defined(TEMP_SENSOR_EXTERNAL)
+        float temp_sample = temp_sample();
+#endif // TEMP_SENSOR_*
         temp += temp_sample;
         LOG2("temp %i\r\n", temp_sample);
     }
