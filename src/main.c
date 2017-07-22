@@ -31,7 +31,7 @@
 
 #include "pins.h"
 
-#define NUM_TEMP_SAMPLES 16
+#define NUM_TEMP_SAMPLES 1 // TODO: increase back to 8 or 16
 
 #define SERIES_LEN       8
 #define SERIES_LEN_MASK  0x07
