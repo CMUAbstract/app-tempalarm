@@ -155,26 +155,26 @@ void init_hw() {
 
     __enable_interrupt();
 
-#if 1 // TEMP: don't wait when testing on continuous power only!
+#ifndef CONFIG_REF // TEMP: don't wait when testing on continuous power only!
     capybara_wait_for_supply();
     capybara_wait_for_vcap();
-#endif
+#endif // !CONFIG_REF
 
     capybara_config_pins();
 
     msp_clock_setup();
+#ifndef CONFIG_REF // TEMP: don't wait when testing on continuous power only!
 
     // TODO: do it here?
     capybara_config_banks(0x0);
     //capybara_config_banks(0x1);
 
-#if 1 // TEMP: don't wait when testing on continuous power only!
     capybara_wait_for_supply();
     if (capybara_shutdown_on_deep_discharge() == CB_ERROR_ALREADY_DEEPLY_DISCHARGED) {
         capybara_shutdown();
     }
-#endif
 
+#endif // !CONFIG_REF
 
     INIT_CONSOLE();
     LOG2("TempAlarm v1.0\r\n");
@@ -291,7 +291,11 @@ void task_append()
 }
 
 void task_delay() {
-    msp_sleep(1024); // 0.250 sec
+#ifdef CONFIG_REF
+    msp_sleep(4000); // 1000ms
+#else // !CONFIG_REF
+    msp_sleep(16); // 4ms
+#endif // !CONFIG_REF
     TRANSITION_TO(task_sample);
 }
 

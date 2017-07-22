@@ -14,7 +14,17 @@ DEPS += \
 	libmsp \
 
 # Local config
+
+# Build version for reference board (continuously-powered) for experiements
+CONFIG_REF = 0
+
+ifeq ($(CONFIG_REF),1)
 TIMESTAMPS = 1
+override CFLAGS += -DCONFIG_REF
+else # !CONFIG_REF
+TIMESTAMPS = 0
+endif # !CONFIG_REF
+
 TEMP_SENSOR = internal
 #TEMP_SENSOR = external
 
