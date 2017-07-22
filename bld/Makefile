@@ -2,7 +2,6 @@ EXEC = tempalarm
 
 OBJECTS = \
 	main.o \
-	timestamp.o \
 
 DEPS += \
 	libchain \
