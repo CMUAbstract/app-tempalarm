@@ -39,6 +39,9 @@
 #define TEMP_NORMAL_MIN 20
 #define TEMP_NORMAL_MAX 38
 
+// Units of temp in the log output are 1/FIXEDPOINT_FACTOR degrees C
+#define TEMP_FIXEDPOINT_FACTOR 10
+
 TASK(1, task_init)
 TASK(2, task_sample)
 TASK(3, task_append)
@@ -223,27 +226,31 @@ void task_init()
 
 void task_sample()
 {
-    P3OUT |= BIT6;
-    int temp = 0;
+    float temp = 0;
     for (int i = 0; i < NUM_TEMP_SAMPLES; ++i) {
+        P3OUT |= BIT6;
 #if defined(TEMP_SENSOR_INTERNAL)
-        int temp_sample = msp_sample_temperature();
+        float tmp_sample = msp_sample_temperature();
 #elif defined(TEMP_SENSOR_EXTERNAL)
-        float temp_sample = temp_sample();
+        float tmp_sample = temp_sample();
 #endif // TEMP_SENSOR_*
-        temp += temp_sample;
-        LOG2("temp %i\r\n", temp_sample);
+        temp += tmp_sample;
+        LOG2("temp %i\r\n", (int)(tmp_sample * TEMP_FIXEDPOINT_FACTOR));
+        P3OUT &= ~BIT6;
     }
+    P3OUT |= BIT6;
     temp /= NUM_TEMP_SAMPLES;
-    LOG2("temp avg: %i\r\n", temp);
-    P3OUT &= ~BIT6;
-
+    LOG2("temp avg: %i\r\n", (int)(temp * TEMP_FIXEDPOINT_FACTOR));
 #ifdef TIMESTAMPS
     uint32_t timestamp = msp_ticks();
-    LOG("%u:%u,%i\r\n", (uint16_t)(timestamp >> 16), (uint16_t)(timestamp & 0xFFFF), temp);
+    LOG("%u:%u,%i\r\n", (uint16_t)(timestamp >> 16), (uint16_t)(timestamp & 0xFFFF), (int)(temp * TEMP_FIXEDPOINT_FACTOR));
+#else
+    LOG("%i\r\n", (int)(temp * TEMP_FIXEDPOINT_FACTOR));
 #endif // TIMESTAMPS
 
-    CHAN_OUT1(int, sample, temp, CH(task_sample, task_append));
+    int temp_sample = temp;
+    CHAN_OUT1(int, sample, temp_sample, CH(task_sample, task_append));
+    P3OUT &= ~BIT6;
 
     TRANSITION_TO(task_append);
 }
