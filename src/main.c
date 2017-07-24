@@ -339,7 +339,7 @@ void task_alarm()
     uartlink_close();
 
     // TODO: wait until radio is finished; for now, wait for 0.25sec
-    msp_sleep(2048);
+    msp_sleep(1024); // 0.125sec
 
     radio_off();
     P3OUT &= ~BIT5;
