@@ -103,7 +103,12 @@ static inline void radio_on()
     GPIO(PORT_RADIO_RST, OUT) &= ~BIT(PIN_RADIO_RST);
 
 #elif BOARD_MAJOR == 1 && BOARD_MINOR == 1
-    fxl_set(BIT_RADIO_SW | BIT_RADIO_RST);
+    // Assert reset and give it time before turning on power, to make sure that
+    // radio doesn't power on while reset is (not yet) asserted and starts.
+    fxl_set(BIT_RADIO_RST);
+    msp_sleep(8); // 10ms
+    fxl_set(BIT_RADIO_SW);
+    msp_sleep(8); // ~10ms
     fxl_clear(BIT_RADIO_RST);
 
 #else // BOARD_{MAJOR,MINOR}
