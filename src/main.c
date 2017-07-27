@@ -169,8 +169,13 @@ void init_hw() {
 #ifndef CONFIG_REF // TEMP: don't wait when testing on continuous power only!
 
     // TODO: do it here?
+#if defined(CONFIG_CAP_RECONF)
     capybara_config_banks(0x0);
-    //capybara_config_banks(0x1);
+#elif defined(CONFIG_CAP_BIG)
+    capybara_config_banks(0x1);
+#elif defined(CONFIG_CAP_SMALL)
+    capybara_config_banks(0x0);
+#endif // CONFIG_*
 
     capybara_wait_for_supply();
     if (capybara_shutdown_on_deep_discharge() == CB_ERROR_ALREADY_DEEPLY_DISCHARGED) {
@@ -298,17 +303,25 @@ void task_append()
 }
 
 void task_delay() {
+    //P3OUT |= BIT6;
 #ifdef CONFIG_REF
     msp_sleep(4000); // 1000ms
 #else // !CONFIG_REF
-    msp_sleep(16); // 4ms
+    //msp_sleep(16); // 4ms
 #endif // !CONFIG_REF
+    //P3OUT &= BIT6;
     TRANSITION_TO(task_sample);
 }
 
 void task_alarm()
 {
+#if defined(CONFIG_CAP_RECONF)
     capybara_config_banks(0x1);
+#elif defined(CONFIG_CAP_BIG)
+    // already configed to 0x1
+#elif defined(CONFIG_CAP_SMALL)
+    // already configed to 0x0
+#endif // CONFIG_CAP_RECONF
 
     radio_pkt.cmd = RADIO_CMD_SET_ADV_PAYLOAD;
 
@@ -344,7 +357,13 @@ void task_alarm()
     radio_off();
     P3OUT &= ~BIT5;
 
+#ifdef CONFIG_CAP_RECONF
     capybara_config_banks(0x0);
+#elif defined(CONFIG_CAP_BIG)
+    // already configed to 0x2
+#elif defined(CONFIG_CAP_SMALL)
+    // already configed to 0x0
+#endif // CONFIG_CAP_RECONF
 
     TRANSITION_TO(task_sample);
 }

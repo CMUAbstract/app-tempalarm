@@ -18,6 +18,22 @@ DEPS += \
 # Build version for reference board (continuously-powered) for experiements
 CONFIG_REF = 0
 
+# Capacity mode:
+#   * reconfig: reconfigurable, manually reconfigured in tasks
+#   * small: fixed capacity set to cap needed for smallest task
+#   * big: fixed capacity set to cap needed for largest task
+CONFIG_CAP = reconf
+
+ifeq ($(CONFIG_CAP),reconf)
+override CFLAGS += -DCONFIG_CAP_RECONF
+else ifeq ($(CONFIG_CAP),small)
+override CFLAGS += -DCONFIG_CAP_SMALL
+else ifeq ($(CONFIG_CAP),big)
+override CFLAGS += -DCONFIG_CAP_BIG
+else # CONFIG_CAP
+$(error Invalid CONFIG_CAP value)
+endif # CONFIG_CAP
+
 ifeq ($(CONFIG_REF),1)
 TIMESTAMPS = 1
 override CFLAGS += -DCONFIG_REF
