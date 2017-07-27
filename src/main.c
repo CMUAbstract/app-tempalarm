@@ -248,7 +248,6 @@ void task_sample()
         LOG2("temp %i\r\n", (int)(tmp_sample * TEMP_FIXEDPOINT_FACTOR));
         P3OUT &= ~BIT6;
     }
-    P3OUT |= BIT6;
     temp /= NUM_TEMP_SAMPLES;
     LOG2("temp avg: %i\r\n", (int)(temp * TEMP_FIXEDPOINT_FACTOR));
 #ifdef TIMESTAMPS
@@ -260,7 +259,6 @@ void task_sample()
 
     int temp_sample = temp;
     CHAN_OUT1(int, sample, temp_sample, CH(task_sample, task_append));
-    P3OUT &= ~BIT6;
 
     TRANSITION_TO(task_append);
 }
