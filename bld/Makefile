@@ -41,8 +41,8 @@ else # !CONFIG_REF
 TIMESTAMPS = 0
 endif # !CONFIG_REF
 
-TEMP_SENSOR = internal
-#TEMP_SENSOR = external
+#TEMP_SENSOR = internal
+TEMP_SENSOR = external
 
 export MAIN_CLOCK_FREQ = 8000000
 
