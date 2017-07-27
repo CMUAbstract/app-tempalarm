@@ -36,8 +36,8 @@
 #define SERIES_LEN       8
 #define SERIES_LEN_MASK  0x07
 
-#define TEMP_NORMAL_MIN 20
-#define TEMP_NORMAL_MAX 38
+#define TEMP_NORMAL_MIN 21
+#define TEMP_NORMAL_MAX 29
 
 // Units of temp in the log output are 1/FIXEDPOINT_FACTOR degrees C
 #define TEMP_FIXEDPOINT_FACTOR 10
