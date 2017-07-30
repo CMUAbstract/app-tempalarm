@@ -470,8 +470,8 @@ void task_alarm()
     uartlink_send((uint8_t *)&radio_pkt.cmd, sizeof(radio_pkt.cmd) + len);
     uartlink_close();
 
-    // TODO: wait until radio is finished; for now, wait for 0.25sec
-    msp_sleep(1024); // 0.125sec
+    // TODO: wait until radio is finished; for now, wait blindly
+    msp_sleep(190); // ~50ms
 
     radio_off();
     P3OUT &= ~BIT7;
