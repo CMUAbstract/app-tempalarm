@@ -19,7 +19,7 @@ DEPS += \
 CONFIG_REF = 0
 
 # Capacity mode:
-#   * reconfig: reconfigurable, manually reconfigured in tasks
+#   * reconf: reconfigurable, manually reconfigured in tasks
 #   * small: fixed capacity set to cap needed for smallest task
 #   * big: fixed capacity set to cap needed for largest task
 CONFIG_CAP = reconf
