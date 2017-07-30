@@ -53,21 +53,21 @@ struct msg_idx {
 };
 
 struct msg_sample {
-    CHAN_FIELD(int, sample);
+    CHAN_FIELD(float, sample);
 };
 
 struct msg_series {
-    CHAN_FIELD_ARRAY(int, series, SERIES_LEN);
+    CHAN_FIELD_ARRAY(float, series, SERIES_LEN);
     CHAN_FIELD(int, len);
 };
 
 struct msg_series_idx {
-    CHAN_FIELD_ARRAY(int, series, SERIES_LEN);
+    CHAN_FIELD_ARRAY(float, series, SERIES_LEN);
     CHAN_FIELD(int, idx);
 };
 
 struct msg_self_series {
-    SELF_CHAN_FIELD_ARRAY(int, series, SERIES_LEN);
+    SELF_CHAN_FIELD_ARRAY(float, series, SERIES_LEN);
     SELF_CHAN_FIELD(int, idx);
 };
 #define FIELD_INIT_msg_self_series {\
@@ -257,21 +257,22 @@ void task_sample()
     LOG("%i\r\n", (int)(temp * TEMP_FIXEDPOINT_FACTOR));
 #endif // TIMESTAMPS
 
-    int temp_sample = temp;
-    CHAN_OUT1(int, sample, temp_sample, CH(task_sample, task_append));
+    float temp_sample = temp;
+    CHAN_OUT1(float, sample, temp_sample, CH(task_sample, task_append));
 
     TRANSITION_TO(task_append);
 }
 
 void task_append()
 {
-    int temp_sample = *CHAN_IN1(int, sample, CH(task_sample, task_append));
-    LOG2("temp %i\r\n", temp_sample);
+
+    float temp_sample = *CHAN_IN1(float, sample, CH(task_sample, task_append));
+    LOG2("temp %i\r\n", (int)(temp_sample * TEMP_FIXEDPOINT_FACTOR));
 
     int idx = *CHAN_IN2(int, idx, CH(task_init, task_append),
                                  SELF_IN_CH(task_append));
 
-    CHAN_OUT1(int, series[idx], temp_sample , SELF_OUT_CH(task_append));
+    CHAN_OUT1(float, series[idx], temp_sample , SELF_OUT_CH(task_append));
     LOG2("series[%u] <- %i\r\n", idx, temp_sample);
 
     idx = (idx + 1) & SERIES_LEN_MASK; // assumes power of 2 len
@@ -286,9 +287,9 @@ void task_append()
         int i = start_idx;
         int j = 0; // output index
         do {
-            int sample = *CHAN_IN2(int, series[i], SELF_IN_CH(task_append),
+            float sample = *CHAN_IN2(float, series[i], SELF_IN_CH(task_append),
                                                    CH(task_init, task_append));
-            CHAN_OUT1(int, series[j], sample, CH(task_append, task_alarm));
+            CHAN_OUT1(float, series[j], sample, CH(task_append, task_alarm));
             ++j;
             i = (i + 1) & SERIES_LEN_MASK; // assumes power of 2 len
         } while (i != start_idx);
@@ -330,8 +331,8 @@ void task_alarm()
 
     int len = *CHAN_IN1(int, len, CH(task_append, task_alarm));
     for (int j = 0; j < len; ++j) {
-        int sample = *CHAN_IN1(int, series[j], CH(task_append, task_alarm));
-        radio_pkt.series[j] = sample;
+        float sample = *CHAN_IN1(float, series[j], CH(task_append, task_alarm));
+        radio_pkt.series[j] = (int)sample;
     }
 
     // TODO: send radio_pkt to radio IC over UART link
