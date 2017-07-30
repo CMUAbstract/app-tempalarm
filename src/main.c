@@ -462,7 +462,7 @@ void task_alarm()
         LOG2("%i ", (int)radio_pkt.series[j]);
     LOG2("\r\n");
 
-    P3OUT |= BIT5;
+    P3OUT |= BIT7;
     radio_on();
     msp_sleep(64); // ~15ms @ ACLK/8
 
@@ -474,7 +474,7 @@ void task_alarm()
     msp_sleep(1024); // 0.125sec
 
     radio_off();
-    P3OUT &= ~BIT5;
+    P3OUT &= ~BIT7;
 
 #ifdef CONFIG_CAP_RECONF
     capybara_config_banks(0x0);
