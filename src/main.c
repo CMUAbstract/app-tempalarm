@@ -43,11 +43,20 @@
 // Units of temp in the log output are 1/FIXEDPOINT_FACTOR degrees C
 #define TEMP_FIXEDPOINT_FACTOR 10
 
+#if defined(CONFIG_REF) || !defined(CONFIG_CAP_PRECHARGE)
 TASK(1, task_init)
 TASK(2, task_sample)
 TASK(3, task_append)
 TASK(4, task_alarm)
 TASK(5, task_delay)
+#else // !CONFIG_REF && CONFIG_CAP_PRECHARGE
+TASK(1, task_init, DEFAULT)
+TASK(2, task_sample, LOWP)
+//TASK(3, task_append, PREBURST, MEDP, LOWP)
+TASK(3, task_append, PREBURST, MEDLOWP, LOWP)
+TASK(4, task_alarm, BURST)
+TASK(5, task_delay, DEFAULT)
+#endif // !CONFIG_REF && CONFIG_CAP_PRECHARGE
 
 struct msg_idx {
     CHAN_FIELD(int, idx);
@@ -129,6 +138,82 @@ static inline void radio_off()
 #else // BOARD_{MAJOR,MINOR}
 #error Unsupported board: do not know how to turn on radio (see BOARD var)
 #endif // BOARD_{MAJOR,MINOR}
+}
+
+void capybara_transition()
+{
+    // need to explore exactly how we want BURST tasks to be followed --> should
+    // we ever shutdown to reconfigure? Or should we always ride the burst wave
+    // until we're out of energy?
+    // TODO no really, a case statement isn't going to kill you!
+
+    // Check previous burst state and register a finished burst
+    if(burst_status){
+        burst_status = 2;
+    }
+    task_cfg_spec_t curpwrcfg = curctx->task->spec_cfg;
+    switch(curpwrcfg){
+        case BURST:
+            prechg_status = 0;
+            capybara_config_banks(prechg_config.banks);
+            burst_status = 1;
+            break;
+
+        case PREBURST:
+            if(!prechg_status){
+                prechg_config.banks = curctx->task->precfg->banks;
+                capybara_config_banks(prechg_config.banks);
+                // Mark that we finished the config_banks_command
+                prechg_status = 1;
+                capybara_shutdown();
+                capybara_wait_for_supply();
+            }
+            //intentional fall through
+
+        case CONFIGD:
+            if(base_config.banks != curctx->task->opcfg->banks){
+                base_config.banks = curctx->task->opcfg->banks;
+                capybara_config_banks(base_config.banks);
+                capybara_wait_for_supply();
+            }
+            //Another intentional fall through
+
+        default:
+            //capybara_config_banks(base_config.banks);
+            //capybara_wait_for_supply();
+            break;
+    }
+
+#if 0
+    // HaNDLe a burst
+    if(curpwrcfg == BURST){
+        prechg_status = 0;
+        capybara_config_banks(prechg_config.banks);
+        burst_status = 1;
+        //capybara_wait_for_supply();
+    }
+    else{
+        burst_status = 0;
+        // Set up a precharge in response to a preburst task if we haven't
+        // precharged already.
+        if( curpwrcfg == PREBURST && !prechg_status){
+            prechg_config.banks = curctx->task->precfg->banks;
+            capybara_config_banks(prechg_config.banks);
+            // Mark that we finished the config_banks_command
+            prechg_status = 1;
+            capybara_shutdown();
+            capybara_wait_for_supply();
+        }
+        // Handle a new config, either from a CONFIGD task a preburst task
+        if(curpwrcfg == CONFIGD || curpwrcfg == PREBURST){
+            base_config.banks = curctx->task->opcfg->banks;
+            capybara_config_banks(base_config.banks);
+            capybara_wait_for_supply();
+        }
+    }
+#endif
+
+    //LOG("Running task %u \r\n",curctx->task->idx);
 }
 
 #if BOARD_MAJOR == 1 && BOARD_MINOR == 1 // in this app, I2C is only needed on v1.1
@@ -240,6 +325,10 @@ void task_init()
 
 void task_sample()
 {
+#if !defined(CONFIG_REF) && defined(CONFIG_CAP_PRECHARGE)
+    capybara_transition();
+#endif // CONFIG_CAP_RECONF
+
     float temp = 0;
     for (int i = 0; i < NUM_TEMP_SAMPLES; ++i) {
         P3OUT |= BIT6;
@@ -269,6 +358,9 @@ void task_sample()
 
 void task_append()
 {
+#if !defined(CONFIG_REF) && defined(CONFIG_CAP_PRECHARGE)
+    capybara_transition();
+#endif // CONFIG_CAP_RECONF
 
     float temp_sample = *CHAN_IN1(float, sample, CH(task_sample, task_append));
     LOG2("temp %i\r\n", (int)(temp_sample * TEMP_FIXEDPOINT_FACTOR));
@@ -322,9 +414,13 @@ void task_append()
 }
 
 void task_delay() {
+#if !defined(CONFIG_REF) && defined(CONFIG_CAP_PRECHARGE)
+    capybara_transition();
+#endif // CONFIG_CAP_RECONF
+
     //P3OUT |= BIT6;
 #ifdef CONFIG_REF
-    msp_sleep(4000); // 1000ms
+    msp_sleep(500); // 125ms
 #else // !CONFIG_REF
     //msp_sleep(16); // 4ms
 #endif // !CONFIG_REF
@@ -334,13 +430,17 @@ void task_delay() {
 
 void task_alarm()
 {
+#if !defined(CONFIG_REF)
 #if defined(CONFIG_CAP_RECONF)
     capybara_config_banks(0x1);
 #elif defined(CONFIG_CAP_BIG)
     // already configed to 0x1
 #elif defined(CONFIG_CAP_SMALL)
     // already configed to 0x0
+#elif defined(CONFIG_CAP_PRECHARGE)
+    capybara_transition();
 #endif // CONFIG_CAP_RECONF
+#endif // CONFIG_REF
 
     radio_pkt.cmd = RADIO_CMD_SET_ADV_PAYLOAD;
 
