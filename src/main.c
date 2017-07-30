@@ -34,8 +34,11 @@
 #define NUM_TEMP_SAMPLES 1 // TODO: increase back to 8 or 16
 #define MIN_ALARM_AGE  100 // minimum samples between alarms
 
-#define SERIES_LEN       8
-#define SERIES_LEN_MASK  0x07
+// 25 is max BLE adv payload size
+#define SERIES_LEN       25
+
+// needed for libchain's array field initializer
+#define REPEAT25(x)     REPEAT16(x),REPEAT8(x),x
 
 #define TEMP_NORMAL_MIN 18
 #define TEMP_NORMAL_MAX 26
@@ -373,7 +376,7 @@ void task_append()
     CHAN_OUT1(float, series[idx], temp_sample , SELF_OUT_CH(task_append));
     LOG2("series[%u] <- %i\r\n", idx, temp_sample);
 
-    idx = (idx + 1) & SERIES_LEN_MASK; // assumes power of 2 len
+    idx = (idx + 1) % SERIES_LEN;
     CHAN_OUT1(int, idx, idx, SELF_OUT_CH(task_append));
 
     if (!(TEMP_NORMAL_MIN <= temp_sample && temp_sample <= TEMP_NORMAL_MAX) &&
@@ -382,7 +385,7 @@ void task_append()
         LOG2("ALARM!\r\n");
 
         // iterate from oldest to newest sample
-        int start_idx = (idx - 1) & SERIES_LEN_MASK; // index into circ buffer (-1 cause already inc'ed)
+        int start_idx = idx > 0 ? idx - 1 : SERIES_LEN - 1; // index into circ buffer (-1 cause already inc'ed)
         int i = start_idx;
         int j = 0; // output index
         do {
@@ -390,7 +393,7 @@ void task_append()
                                                    CH(task_init, task_append));
             CHAN_OUT1(float, series[j], sample, CH(task_append, task_alarm));
             ++j;
-            i = (i + 1) & SERIES_LEN_MASK; // assumes power of 2 len
+            i = (i + 1) % SERIES_LEN;
         } while (i != start_idx);
         // for now, this is fixed length, but send anyway for future
         CHAN_OUT1(int, len, j, CH(task_append, task_alarm));
