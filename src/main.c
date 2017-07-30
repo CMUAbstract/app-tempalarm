@@ -374,7 +374,7 @@ void task_append()
                                  SELF_IN_CH(task_append));
 
     CHAN_OUT1(float, series[idx], temp_sample , SELF_OUT_CH(task_append));
-    LOG2("series[%u] <- %i\r\n", idx, temp_sample);
+    LOG2("series[%u] <- %i\r\n", idx, (int)(temp_sample * TEMP_FIXEDPOINT_FACTOR));
 
     idx = (idx + 1) % SERIES_LEN;
     CHAN_OUT1(int, idx, idx, SELF_OUT_CH(task_append));
