@@ -32,6 +32,7 @@
 #include "pins.h"
 
 #define NUM_TEMP_SAMPLES 1 // TODO: increase back to 8 or 16
+#define MIN_ALARM_AGE  100 // minimum samples between alarms
 
 #define SERIES_LEN       8
 #define SERIES_LEN_MASK  0x07
@@ -64,14 +65,17 @@ struct msg_series {
 struct msg_series_idx {
     CHAN_FIELD_ARRAY(float, series, SERIES_LEN);
     CHAN_FIELD(int, idx);
+    CHAN_FIELD(int, alarm_age);
 };
 
 struct msg_self_series {
     SELF_CHAN_FIELD_ARRAY(float, series, SERIES_LEN);
     SELF_CHAN_FIELD(int, idx);
+    SELF_CHAN_FIELD(int, alarm_age);
 };
 #define FIELD_INIT_msg_self_series {\
     SELF_FIELD_ARRAY_INITIALIZER(SERIES_LEN), \
+    SELF_FIELD_INITIALIZER, \
     SELF_FIELD_INITIALIZER \
 }
 
@@ -223,10 +227,10 @@ void init_hw() {
 
 void task_init()
 {
-    int idx = 0;
-    CHAN_OUT1(int, idx, idx, CH(task_init, task_append));
-
     int zero = 0;
+    CHAN_OUT1(int, idx, zero, CH(task_init, task_append));
+    CHAN_OUT1(int, alarm_age, zero, CH(task_init, task_append));
+
     for (int i = 0; i < SERIES_LEN; ++i) {
         CHAN_OUT1(int, series[i], zero, CH(task_init, task_append));
     }
@@ -271,6 +275,8 @@ void task_append()
 
     int idx = *CHAN_IN2(int, idx, CH(task_init, task_append),
                                  SELF_IN_CH(task_append));
+    int alarm_age = *CHAN_IN2(int, alarm_age, CH(task_init, task_append),
+                                 SELF_IN_CH(task_append));
 
     CHAN_OUT1(float, series[idx], temp_sample , SELF_OUT_CH(task_append));
     LOG2("series[%u] <- %i\r\n", idx, temp_sample);
@@ -278,7 +284,8 @@ void task_append()
     idx = (idx + 1) & SERIES_LEN_MASK; // assumes power of 2 len
     CHAN_OUT1(int, idx, idx, SELF_OUT_CH(task_append));
 
-    if (!(TEMP_NORMAL_MIN <= temp_sample && temp_sample <= TEMP_NORMAL_MAX)) {
+    if (!(TEMP_NORMAL_MIN <= temp_sample && temp_sample <= TEMP_NORMAL_MAX) &&
+        (alarm_age == -1 || alarm_age > MIN_ALARM_AGE)) {
 
         LOG2("ALARM!\r\n");
 
@@ -296,14 +303,22 @@ void task_append()
         // for now, this is fixed length, but send anyway for future
         CHAN_OUT1(int, len, j, CH(task_append, task_alarm));
 
+        int zero = 0;
+        CHAN_OUT1(int, alarm_age, zero, SELF_OUT_CH(task_append));
+
         TRANSITION_TO(task_alarm);
+    } else {
+        if (alarm_age <= MIN_ALARM_AGE) // cap it, this way we don't have to deal with overflow
+            ++alarm_age;
+        CHAN_OUT1(int, alarm_age, alarm_age, SELF_OUT_CH(task_append));
+
+        // TODO: would be good to have a chain primitive of transition with delay,
+        // that updates the task pointer, and then goes to sleep; in order to
+        // not sleep if you powered off (assuming the charge time is always greater
+        // than the desired delay).
+        TRANSITION_TO(task_delay);
     }
 
-    // TODO: would be good to have a chain primitive of transition with delay,
-    // that updates the task pointer, and then goes to sleep; in order to
-    // not sleep if you powered off (assuming the charge time is always greater
-    // than the desired delay).
-    TRANSITION_TO(task_delay);
 }
 
 void task_delay() {
