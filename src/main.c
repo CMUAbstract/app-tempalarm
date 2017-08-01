@@ -245,7 +245,7 @@ void i2c_setup(void) {
 }
 #endif // BOARD_{MAJOR,MINOR}
 
-void init_hw() {
+int main() {
     msp_watchdog_disable();
     msp_gpio_unlock();
 
@@ -311,6 +311,8 @@ void init_hw() {
 #endif // BOARD_{MAJOR,MINOR}
 
     LOG2(".%u.\r\n", curctx->task->idx);
+
+    return chain_main();
 }
 
 void task_init()
@@ -527,4 +529,3 @@ void  GPIO_ISR(_THIS_PORT) (void)
 #undef _THIS_PORT
 
 ENTRY_TASK(task_init)
-INIT_FUNC(init_hw)
