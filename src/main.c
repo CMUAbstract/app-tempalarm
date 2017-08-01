@@ -237,7 +237,7 @@ void i2c_setup(void) {
   EUSCI_B_I2C_initMasterParam param = {0};
   param.selectClockSource = EUSCI_B_I2C_CLOCKSOURCE_SMCLK;
   param.i2cClk = CS_getSMCLK();
-  param.dataRate = EUSCI_B_I2C_SET_DATA_RATE_100KBPS;
+  param.dataRate = EUSCI_B_I2C_SET_DATA_RATE_400KBPS;
   param.byteCounterThreshold = 0;
   param.autoSTOPGeneration = EUSCI_B_I2C_NO_AUTO_STOP;
 
