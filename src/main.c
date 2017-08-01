@@ -312,8 +312,7 @@ int main() {
     LOG2("fxl init\r\n");
     fxl_init();
 
-    fxl_out(BIT_RADIO_SW);
-    fxl_out(BIT_RADIO_RST);
+    fxl_out(BIT_RADIO_SW | BIT_RADIO_RST);
     fxl_pull_up(BIT_CCS_WAKE);
     // SENSE_SW is present but is not electrically correct: do not use.
 #else // BOARD_{MAJOR,MINOR}
