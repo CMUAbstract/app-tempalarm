@@ -495,14 +495,27 @@ void task_alarm()
 
     P3OUT |= BIT7;
     radio_on();
+
+    P3OUT &= ~BIT7;
+    P3OUT |= BIT7;
+
     msp_sleep(RADIO_BOOT_CYCLES); // ~15ms @ ACLK/8
+
+    P3OUT &= ~BIT7;
+    P3OUT |= BIT7;
 
     uartlink_open_tx();
     uartlink_send((uint8_t *)&radio_pkt.cmd, sizeof(radio_pkt.cmd) + len);
     uartlink_close();
 
+    P3OUT &= ~BIT7;
+    P3OUT |= BIT7;
+
     // TODO: wait until radio is finished; for now, wait blindly
     msp_sleep(RADIO_ON_CYCLES);
+
+    P3OUT &= ~BIT7;
+    P3OUT |= BIT7;
 
     radio_off();
     P3OUT &= ~BIT7;
