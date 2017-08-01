@@ -271,9 +271,6 @@ int main() {
     P3OUT |= BIT5;
     capybara_wait_for_supply();
     P3OUT &= ~BIT5;
-    P3OUT |= BIT5;
-    capybara_wait_for_vcap();
-    P3OUT &= ~BIT5;
 #endif // !CONFIG_REF
 
     P3OUT |= BIT5;
