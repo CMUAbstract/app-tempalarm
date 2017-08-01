@@ -275,6 +275,11 @@ int main() {
     msp_clock_setup();
 #ifndef CONFIG_REF // TEMP: don't wait when testing on continuous power only!
 
+    // Setup deep discharge shutdown interrupt before reconfiguring banks,
+    // so that if we deep discharge during reconfiguration, we still at
+    // least try to avoid cold start. NOTE: this is controversial.
+    cb_rc_t deep_discharge_status = capybara_shutdown_on_deep_discharge();
+
     // TODO: do it here?
 #if defined(CONFIG_CAP_RECONF)
     capybara_config_banks(0x0);
@@ -284,10 +289,17 @@ int main() {
     capybara_config_banks(0x0);
 #endif // CONFIG_*
 
-    capybara_wait_for_supply();
-    if (capybara_shutdown_on_deep_discharge() == CB_ERROR_ALREADY_DEEPLY_DISCHARGED) {
+    // We still want to attempt reconfiguration, no matter how low Vcap
+    // is, because otherwise we'd never be able to reconfigure. But, we
+    // definitely do not want to run Vcap into the ground if we know
+    // it is already below deep discharge threshold. NOTE: this doesn't
+    // seem to matter much, because Vcap eventually discharges anyway
+    // (regardless of whether we shutdown or not), if deep discharge threshold
+    // was crossed.
+    if (deep_discharge_status == CB_ERROR_ALREADY_DEEPLY_DISCHARGED)
         capybara_shutdown();
-    }
+
+    capybara_wait_for_supply();
 
 #endif // !CONFIG_REF
 
