@@ -53,16 +53,17 @@
 #if defined(CONFIG_REF) || !defined(CONFIG_CAP_PRECHARGE)
 TASK(1, task_init)
 TASK(2, task_sample)
-TASK(3, task_append)
-TASK(4, task_alarm)
-TASK(5, task_delay)
+TASK(3, task_output)
+TASK(4, task_append)
+TASK(5, task_alarm)
+TASK(6, task_delay)
 #else // !CONFIG_REF && CONFIG_CAP_PRECHARGE
 TASK(1, task_init, DEFAULT)
 TASK(2, task_sample, LOWP)
-//TASK(3, task_append, PREBURST, MEDP, LOWP)
-TASK(3, task_append, PREBURST, MEDLOWP, LOWP)
-TASK(4, task_alarm, BURST)
-TASK(5, task_delay, DEFAULT)
+TASK(3, task_output)
+TASK(4, task_append, PREBURST, MEDLOWP, LOWP)
+TASK(5, task_alarm, BURST)
+TASK(6, task_delay, DEFAULT)
 #endif // !CONFIG_REF && CONFIG_CAP_PRECHARGE
 
 struct msg_idx {
@@ -70,22 +71,22 @@ struct msg_idx {
 };
 
 struct msg_sample {
-    CHAN_FIELD(float, sample);
+    CHAN_FIELD(int, sample);
 };
 
 struct msg_series {
-    CHAN_FIELD_ARRAY(float, series, SERIES_LEN);
+    CHAN_FIELD_ARRAY(int, series, SERIES_LEN);
     CHAN_FIELD(int, len);
 };
 
 struct msg_series_idx {
-    CHAN_FIELD_ARRAY(float, series, SERIES_LEN);
+    CHAN_FIELD_ARRAY(int, series, SERIES_LEN);
     CHAN_FIELD(int, idx);
     CHAN_FIELD(int, alarm_age);
 };
 
 struct msg_self_series {
-    SELF_CHAN_FIELD_ARRAY(float, series, SERIES_LEN);
+    SELF_CHAN_FIELD_ARRAY(int, series, SERIES_LEN);
     SELF_CHAN_FIELD(int, idx);
     SELF_CHAN_FIELD(int, alarm_age);
 };
@@ -97,6 +98,7 @@ struct msg_self_series {
 
 CHANNEL(task_init, task_append, msg_series_idx);
 CHANNEL(task_sample, task_append, msg_sample);
+CHANNEL(task_sample, task_output, msg_sample);
 SELF_CHANNEL(task_append, msg_self_series);
 CHANNEL(task_append, task_alarm, msg_series);
 
@@ -342,29 +344,46 @@ void task_sample()
     capybara_transition();
 #endif // CONFIG_CAP_RECONF
 
-    float temp = 0;
+    int tmp_sample;
+    int temp = 0;
     for (int i = 0; i < NUM_TEMP_SAMPLES; ++i) {
         P3OUT |= BIT6;
 #if defined(TEMP_SENSOR_INTERNAL)
-        float tmp_sample = msp_sample_temperature();
+        tmp_sample = msp_sample_temperature();
 #elif defined(TEMP_SENSOR_EXTERNAL)
-        float tmp_sample = temp_sample();
+        tmp_sample = temp_sample();
 #endif // TEMP_SENSOR_*
+        P3OUT &= ~BIT6;
+        P3OUT |= BIT6;
         temp += tmp_sample;
-        LOG2("temp %i\r\n", (int)(tmp_sample * TEMP_FIXEDPOINT_FACTOR));
+        LOG2("temp %i\r\n", tmp_sample);
         P3OUT &= ~BIT6;
     }
+    P3OUT |= BIT6;
     temp /= NUM_TEMP_SAMPLES;
-    LOG2("temp avg: %i\r\n", (int)(temp * TEMP_FIXEDPOINT_FACTOR));
-#ifdef TIMESTAMPS
-    uint32_t timestamp = msp_ticks();
-    LOG("%u:%u,%i\r\n", (uint16_t)(timestamp >> 16), (uint16_t)(timestamp & 0xFFFF), (int)(temp * TEMP_FIXEDPOINT_FACTOR));
-#else
-    LOG("%i\r\n", (int)(temp * TEMP_FIXEDPOINT_FACTOR));
-#endif // TIMESTAMPS
+    CHAN_OUT1(int, sample, temp, CH(task_sample, task_append));
+    P3OUT &= ~BIT6;
 
-    float temp_sample = temp;
-    CHAN_OUT1(float, sample, temp_sample, CH(task_sample, task_append));
+#ifdef TIMESTAMPS // have to timestamp and output in this task to correlate with sample
+    uint32_t timestamp = msp_ticks();
+    LOG("%u:%u,%i\r\n", (uint16_t)(timestamp >> 16), (uint16_t)(timestamp & 0xFFFF), temp);
+
+    TRANSITION_TO(task_append);
+#else
+    CHAN_OUT1(int, sample, temp, CH(task_sample, task_output));
+    TRANSITION_TO(task_output);
+#endif // TIMESTAMPS
+}
+
+void task_output()
+{
+    int temp = *CHAN_IN1(int, sample, CH(task_sample, task_output));
+
+#if VERBOSE > 2
+    LOG2("temp avg: %i\r\n", temp);
+#else
+    LOG("%i\r\n", temp);
+#endif // VERBOSE
 
     TRANSITION_TO(task_append);
 }
@@ -375,21 +394,21 @@ void task_append()
     capybara_transition();
 #endif // CONFIG_CAP_RECONF
 
-    float temp_sample = *CHAN_IN1(float, sample, CH(task_sample, task_append));
-    LOG2("temp %i\r\n", (int)(temp_sample * TEMP_FIXEDPOINT_FACTOR));
+    int tmp_sample = *CHAN_IN1(int, sample, CH(task_sample, task_append));
+    LOG2("temp %i\r\n", tmp_sample);
 
     int idx = *CHAN_IN2(int, idx, CH(task_init, task_append),
                                  SELF_IN_CH(task_append));
     int alarm_age = *CHAN_IN2(int, alarm_age, CH(task_init, task_append),
                                  SELF_IN_CH(task_append));
 
-    CHAN_OUT1(float, series[idx], temp_sample , SELF_OUT_CH(task_append));
-    LOG2("series[%u] <- %i\r\n", idx, (int)(temp_sample * TEMP_FIXEDPOINT_FACTOR));
+    CHAN_OUT1(int, series[idx], tmp_sample , SELF_OUT_CH(task_append));
+    LOG2("series[%u] <- %i\r\n", idx, tmp_sample);
 
     idx = (idx + 1) % SERIES_LEN;
     CHAN_OUT1(int, idx, idx, SELF_OUT_CH(task_append));
 
-    if (!(TEMP_NORMAL_MIN <= temp_sample && temp_sample <= TEMP_NORMAL_MAX) &&
+    if (!(TEMP_NORMAL_MIN <= tmp_sample && tmp_sample <= TEMP_NORMAL_MAX) &&
         (alarm_age == -1 || alarm_age > MIN_ALARM_AGE)) {
 
         LOG2("ALARM!\r\n");
@@ -399,9 +418,9 @@ void task_append()
         int i = start_idx;
         int j = 0; // output index
         do {
-            float sample = *CHAN_IN2(float, series[i], SELF_IN_CH(task_append),
+            int sample = *CHAN_IN2(int, series[i], SELF_IN_CH(task_append),
                                                    CH(task_init, task_append));
-            CHAN_OUT1(float, series[j], sample, CH(task_append, task_alarm));
+            CHAN_OUT1(int, series[j], sample, CH(task_append, task_alarm));
             ++j;
             i = (i + 1) % SERIES_LEN;
         } while (i != start_idx);
@@ -459,8 +478,8 @@ void task_alarm()
 
     int len = *CHAN_IN1(int, len, CH(task_append, task_alarm));
     for (int j = 0; j < len; ++j) {
-        float sample = *CHAN_IN1(float, series[j], CH(task_append, task_alarm));
-        radio_pkt.series[j] = (int)sample;
+        int sample = *CHAN_IN1(int, series[j], CH(task_append, task_alarm));
+        radio_pkt.series[j] = sample / TEMP_FIXEDPOINT_FACTOR;
     }
 
     // TODO: send radio_pkt to radio IC over UART link
