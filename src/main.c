@@ -40,8 +40,8 @@
 // needed for libchain's array field initializer
 #define REPEAT25(x)     REPEAT16(x),REPEAT8(x),x
 
-#define TEMP_NORMAL_MIN 18
-#define TEMP_NORMAL_MAX 26
+#define TEMP_NORMAL_MIN 180 // degC * 10
+#define TEMP_NORMAL_MAX 260 // degC * 10
 
 #define RADIO_ON_CYCLES   60 // ~12ms (a bundle of 2-3 pkts 25 payload bytes each on Pin=0)
 #define RADIO_BOOT_CYCLES 60
