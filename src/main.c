@@ -43,6 +43,10 @@
 #define TEMP_NORMAL_MIN 18
 #define TEMP_NORMAL_MAX 26
 
+#define RADIO_ON_CYCLES   60 // ~12ms (a bundle of 2-3 pkts 25 payload bytes each on Pin=0)
+#define RADIO_BOOT_CYCLES 60
+#define RADIO_RST_CYCLES   1
+
 // Units of temp in the log output are 1/FIXEDPOINT_FACTOR degrees C
 #define TEMP_FIXEDPOINT_FACTOR 10
 
@@ -122,9 +126,9 @@ static inline void radio_on()
     // Assert reset and give it time before turning on power, to make sure that
     // radio doesn't power on while reset is (not yet) asserted and starts.
     fxl_set(BIT_RADIO_RST);
-    msp_sleep(8); // 10ms
+    msp_sleep(RADIO_RST_CYCLES);
     fxl_set(BIT_RADIO_SW);
-    msp_sleep(8); // ~10ms
+    msp_sleep(RADIO_RST_CYCLES);
     fxl_clear(BIT_RADIO_RST);
 
 #else // BOARD_{MAJOR,MINOR}
@@ -135,8 +139,12 @@ static inline void radio_on()
 static inline void radio_off()
 {
 #if BOARD_MAJOR == 1 && BOARD_MINOR == 0
+    GPIO(PORT_RADIO_RST, OUT) |= BIT(PIN_RADIO_RST); // reset for clean(er) shutdown
+    msp_sleep(RADIO_RST_CYCLES);
     GPIO(PORT_RADIO_SW, OUT) &= ~BIT(PIN_RADIO_SW);
 #elif BOARD_MAJOR == 1 && BOARD_MINOR == 1
+    fxl_set(BIT_RADIO_RST); // reset for clean(er) shutdown
+    msp_sleep(RADIO_RST_CYCLES);
     fxl_clear(BIT_RADIO_SW);
 #else // BOARD_{MAJOR,MINOR}
 #error Unsupported board: do not know how to turn on radio (see BOARD var)
@@ -469,14 +477,14 @@ void task_alarm()
 
     P3OUT |= BIT7;
     radio_on();
-    msp_sleep(64); // ~15ms @ ACLK/8
+    msp_sleep(RADIO_BOOT_CYCLES); // ~15ms @ ACLK/8
 
     uartlink_open_tx();
     uartlink_send((uint8_t *)&radio_pkt.cmd, sizeof(radio_pkt.cmd) + len);
     uartlink_close();
 
     // TODO: wait until radio is finished; for now, wait blindly
-    msp_sleep(190); // ~50ms
+    msp_sleep(RADIO_ON_CYCLES);
 
     radio_off();
     P3OUT &= ~BIT7;
