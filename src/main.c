@@ -263,16 +263,24 @@ int main() {
     P3OUT &= ~(BIT5 | BIT6 | BIT7);
     P3DIR |= BIT5 | BIT6 | BIT7;
 
+    P3OUT |= BIT5;
+
     __enable_interrupt();
 
 #ifndef CONFIG_REF // TEMP: don't wait when testing on continuous power only!
+    P3OUT |= BIT5;
     capybara_wait_for_supply();
+    P3OUT &= ~BIT5;
+    P3OUT |= BIT5;
     capybara_wait_for_vcap();
+    P3OUT &= ~BIT5;
 #endif // !CONFIG_REF
 
+    P3OUT |= BIT5;
     capybara_config_pins();
-
     msp_clock_setup();
+    P3OUT &= ~BIT5;
+
 #ifndef CONFIG_REF // TEMP: don't wait when testing on continuous power only!
 
     // Setup deep discharge shutdown interrupt before reconfiguring banks,
@@ -281,6 +289,7 @@ int main() {
     cb_rc_t deep_discharge_status = capybara_shutdown_on_deep_discharge();
 
     // TODO: do it here?
+    P3OUT |= BIT5;
 #if defined(CONFIG_CAP_RECONF)
     capybara_config_banks(0x0);
 #elif defined(CONFIG_CAP_BIG)
@@ -288,6 +297,7 @@ int main() {
 #elif defined(CONFIG_CAP_SMALL)
     capybara_config_banks(0x0);
 #endif // CONFIG_*
+    P3OUT &= ~BIT5;
 
     // We still want to attempt reconfiguration, no matter how low Vcap
     // is, because otherwise we'd never be able to reconfigure. But, we
@@ -299,10 +309,13 @@ int main() {
     if (deep_discharge_status == CB_ERROR_ALREADY_DEEPLY_DISCHARGED)
         capybara_shutdown();
 
+    P3OUT |= BIT5;
     capybara_wait_for_supply();
+    P3OUT &= ~BIT5;
 
 #endif // !CONFIG_REF
 
+    P3OUT |= BIT5;
     INIT_CONSOLE();
     LOG2("TempAlarm v1.0\r\n");
 
@@ -318,6 +331,10 @@ int main() {
     GPIO(PORT_RADIO_SW, OUT) &= ~BIT(PIN_RADIO_SW);
     GPIO(PORT_RADIO_SW, DIR) |= BIT(PIN_RADIO_SW);
 #elif BOARD_MAJOR == 1 && BOARD_MINOR == 1
+    P3OUT &= ~BIT5;
+
+    P3OUT |= BIT5;
+
     LOG2("i2c init\r\n");
     i2c_setup();
 
@@ -330,6 +347,8 @@ int main() {
 #else // BOARD_{MAJOR,MINOR}
 #error Unsupported board: do not know what pins to configure (see BOARD var)
 #endif // BOARD_{MAJOR,MINOR}
+
+    P3OUT &= ~BIT5;
 
     LOG2(".%u.\r\n", curctx->task->idx);
 
