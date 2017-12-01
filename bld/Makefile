@@ -16,7 +16,7 @@ DEPS += \
 # Local config
 
 # Build version for reference board (continuously-powered) for experiements
-CONFIG_REF = 0
+CONFIG_REF ?= 0
 
 # Capacity mode:
 #   * reconf: reconfigurable, manually reconfigured in tasks
