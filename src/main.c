@@ -35,10 +35,10 @@
 #define MIN_ALARM_AGE  100 // minimum samples between alarms
 
 // 25 is max BLE adv payload size
-#define SERIES_LEN       25
+#define SERIES_LEN       23
 
 // needed for libchain's array field initializer
-#define REPEAT25(x)     REPEAT16(x),REPEAT8(x),x
+#define REPEAT23(x)     REPEAT16(x),REPEAT4(x),REPEAT2(x),x
 
 #define TEMP_NORMAL_MIN 180 // degC * 10
 #define TEMP_NORMAL_MAX 260 // degC * 10
