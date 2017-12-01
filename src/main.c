@@ -279,10 +279,12 @@ int main() {
 
 #ifndef CONFIG_REF // TEMP: don't wait when testing on continuous power only!
 
+    P3OUT |= BIT5;
     // Setup deep discharge shutdown interrupt before reconfiguring banks,
     // so that if we deep discharge during reconfiguration, we still at
     // least try to avoid cold start. NOTE: this is controversial.
     cb_rc_t deep_discharge_status = capybara_shutdown_on_deep_discharge();
+    P3OUT &= ~BIT5;
 
     // TODO: do it here?
     P3OUT |= BIT5;
