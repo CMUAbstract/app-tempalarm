@@ -31,8 +31,13 @@
 
 #include "pins.h"
 
-#define NUM_TEMP_SAMPLES 1 // TODO: increase back to 8 or 16
-#define MIN_ALARM_AGE  100 // minimum samples between alarms
+#define NUM_TEMP_SAMPLES 1
+#if CONFIG_REF
+#define MIN_ALARM_AGE  125 // minimum samples between alarms
+#else // !CONFIG_REF
+//#define MIN_ALARM_AGE  75 // minimum samples between alarms
+#define MIN_ALARM_AGE  2 // minimum samples between alarms
+#endif // !CONFIG_REF
 
 // 25 is max BLE adv payload size
 #define SERIES_LEN       23
@@ -40,8 +45,13 @@
 // needed for libchain's array field initializer
 #define REPEAT23(x)     REPEAT16(x),REPEAT4(x),REPEAT2(x),x
 
+#if CONFIG_REF
 #define TEMP_NORMAL_MIN 180 // degC * 10
 #define TEMP_NORMAL_MAX 260 // degC * 10
+#else // !CONFIG_REF
+#define TEMP_NORMAL_MIN 185 // degC * 10
+#define TEMP_NORMAL_MAX 255 // degC * 10
+#endif
 
 #define RADIO_ON_CYCLES   60 // ~12ms (a bundle of 2-3 pkts 25 payload bytes each on Pin=0)
 #define RADIO_BOOT_CYCLES 60
@@ -78,19 +88,29 @@ struct msg_series {
     CHAN_FIELD(int, len);
 };
 
+struct msg_alarm {
+    CHAN_FIELD_ARRAY(int, series, SERIES_LEN);
+    CHAN_FIELD(int, len);
+    CHAN_FIELD(int, alarm_type);
+    CHAN_FIELD(int, alarm_seq);
+};
+
 struct msg_series_idx {
     CHAN_FIELD_ARRAY(int, series, SERIES_LEN);
     CHAN_FIELD(int, idx);
     CHAN_FIELD(int, alarm_age);
+    CHAN_FIELD(int, alarm_seq);
 };
 
 struct msg_self_series {
     SELF_CHAN_FIELD_ARRAY(int, series, SERIES_LEN);
     SELF_CHAN_FIELD(int, idx);
     SELF_CHAN_FIELD(int, alarm_age);
+    SELF_CHAN_FIELD(int, alarm_seq);
 };
 #define FIELD_INIT_msg_self_series {\
     SELF_FIELD_ARRAY_INITIALIZER(SERIES_LEN), \
+    SELF_FIELD_INITIALIZER, \
     SELF_FIELD_INITIALIZER, \
     SELF_FIELD_INITIALIZER \
 }
@@ -99,7 +119,12 @@ CHANNEL(task_init, task_append, msg_series_idx);
 CHANNEL(task_sample, task_append, msg_sample);
 CHANNEL(task_sample, task_output, msg_sample);
 SELF_CHANNEL(task_append, msg_self_series);
-CHANNEL(task_append, task_alarm, msg_series);
+CHANNEL(task_append, task_alarm, msg_alarm);
+
+typedef enum {
+    ALARM_TYPE_COLD = 0,
+    ALARM_TYPE_HOT,
+} alarm_type_t;
 
 typedef enum __attribute__((packed)) {
     RADIO_CMD_SET_ADV_PAYLOAD = 0,
@@ -107,10 +132,14 @@ typedef enum __attribute__((packed)) {
 
 typedef struct __attribute__((packed)) {
     radio_cmd_t cmd;
+    uint8_t alarm_type;
+    uint8_t alarm_seq;
     uint8_t series[SERIES_LEN];
 } radio_pkt_t;
 
 static radio_pkt_t radio_pkt;
+
+static bool alarm_sent = false;
 
 static inline void radio_on()
 {
@@ -358,6 +387,7 @@ void task_init()
     int zero = 0;
     CHAN_OUT1(int, idx, zero, CH(task_init, task_append));
     CHAN_OUT1(int, alarm_age, zero, CH(task_init, task_append));
+    CHAN_OUT1(int, alarm_seq, zero, CH(task_init, task_append));
 
     for (int i = 0; i < SERIES_LEN; ++i) {
         CHAN_OUT1(int, series[i], zero, CH(task_init, task_append));
@@ -436,10 +466,31 @@ void task_append()
     idx = (idx + 1) % SERIES_LEN;
     CHAN_OUT1(int, idx, idx, SELF_OUT_CH(task_append));
 
+#ifdef CONFIG_REF
     if (!(TEMP_NORMAL_MIN <= tmp_sample && tmp_sample <= TEMP_NORMAL_MAX) &&
-        (alarm_age == -1 || alarm_age > MIN_ALARM_AGE)) {
+        (alarm_age == 0 || alarm_age > MIN_ALARM_AGE)) {
+#else
+    //if (!(TEMP_NORMAL_MIN <= tmp_sample && tmp_sample <= TEMP_NORMAL_MAX)) {
+    if (!(TEMP_NORMAL_MIN <= tmp_sample && tmp_sample <= TEMP_NORMAL_MAX) &&
+        (!alarm_sent) && 
+        (alarm_age == 0 || alarm_age > MIN_ALARM_AGE)) {
+#endif
 
-        LOG2("ALARM!\r\n");
+        int alarm_type;
+        if (tmp_sample < TEMP_NORMAL_MIN)
+            alarm_type = ALARM_TYPE_COLD;
+        else if (tmp_sample > TEMP_NORMAL_MAX)
+            alarm_type = ALARM_TYPE_HOT;
+        CHAN_OUT1(int, alarm_type, alarm_type, CH(task_append, task_alarm));
+
+        int alarm_seq = *CHAN_IN2(int, alarm_seq, CH(task_init, task_append),
+                                                  SELF_IN_CH(task_append));
+        CHAN_OUT1(int, alarm_seq, alarm_seq, CH(task_append, task_alarm));
+
+        ++alarm_seq;
+        CHAN_OUT1(int, alarm_seq, alarm_seq, SELF_OUT_CH(task_append));
+
+        LOG2("# t %u s %u\r\n", alarm_type, alarm_seq);
 
         // iterate from oldest to newest sample
         int start_idx = idx > 0 ? idx - 1 : SERIES_LEN - 1; // index into circ buffer (-1 cause already inc'ed)
@@ -455,8 +506,10 @@ void task_append()
         // for now, this is fixed length, but send anyway for future
         CHAN_OUT1(int, len, j, CH(task_append, task_alarm));
 
-        int zero = 0;
-        CHAN_OUT1(int, alarm_age, zero, SELF_OUT_CH(task_append));
+        int one = 1;
+        CHAN_OUT1(int, alarm_age, one, SELF_OUT_CH(task_append));
+
+        alarm_sent = true;
 
 #if !defined(CONFIG_REF) && defined(CONFIG_CAP_RECONF)
         capybara_config_banks(0x1);
@@ -513,15 +566,20 @@ void task_alarm()
 #endif // CONFIG_CAP_RECONF
 #endif // CONFIG_REF
 
+    int alarm_type = *CHAN_IN1(int, alarm_type, CH(task_append, task_alarm));
+    int alarm_seq = *CHAN_IN1(int, alarm_seq, CH(task_append, task_alarm));
+    LOG2("alarm: type %d seq %d\r\n", alarm_type, alarm_seq);
+
     radio_pkt.cmd = RADIO_CMD_SET_ADV_PAYLOAD;
 
+    radio_pkt.alarm_type = alarm_type;
+    radio_pkt.alarm_seq = alarm_seq;
     int len = *CHAN_IN1(int, len, CH(task_append, task_alarm));
     for (int j = 0; j < len; ++j) {
         int sample = *CHAN_IN1(int, series[j], CH(task_append, task_alarm));
         radio_pkt.series[j] = sample / TEMP_FIXEDPOINT_FACTOR;
     }
 
-    // TODO: send radio_pkt to radio IC over UART link
     LOG2("TX PKT (len %u):\r\n", len);
     int j;
     for (j = 0; j < len; j += 16) {
@@ -545,7 +603,8 @@ void task_alarm()
     P3OUT |= BIT7;
 
     uartlink_open_tx();
-    uartlink_send((uint8_t *)&radio_pkt.cmd, sizeof(radio_pkt.cmd) + len);
+    uartlink_send((uint8_t *)&radio_pkt.cmd,
+                   sizeof(radio_pkt.cmd) + 1 /* alarm type */ + 1 /* alarm seq */ + len);
     uartlink_close();
 
     P3OUT &= ~BIT7;
