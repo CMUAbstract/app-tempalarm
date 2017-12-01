@@ -47,7 +47,6 @@
 #define RADIO_BOOT_CYCLES 60
 #define RADIO_RST_CYCLES   1
 
-// Units of temp in the log output are 1/FIXEDPOINT_FACTOR degrees C
 #define TEMP_FIXEDPOINT_FACTOR 10
 
 #if defined(CONFIG_REF) || !defined(CONFIG_CAP_PRECHARGE)
