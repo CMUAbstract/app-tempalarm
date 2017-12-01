@@ -1,30 +1,30 @@
 [submodule "ext/maker"]
 	path = ext/maker
-	url = /afs/ece.cmu.edu/project/abstract/repos/maker
+	url = https://github.com/CMUAbstract/maker
 [submodule "ext/libmsp"]
 	path = ext/libmsp
-	url = /afs/ece.cmu.edu/project/abstract/repos/libmsp
+	url = https://github.com/CMUAbstract/libmsp
 [submodule "ext/libcapybara"]
 	path = ext/libcapybara
-	url = /afs/ece.cmu.edu/project/abstract/repos/libcapybara
+	url = https://github.com/CMUAbstract/libcapybara
 [submodule "ext/libio"]
 	path = ext/libio
-	url = /afs/ece.cmu.edu/project/abstract/repos/libio
+	url = https://github.com/CMUAbstract/libio
 [submodule "ext/libmspware"]
 	path = ext/libmspware
-	url = /afs/ece.cmu.edu/project/abstract/repos/libmspware
+	url = https://github.com/CMUAbstract/libmspware
 [submodule "ext/libmcppot"]
 	path = ext/libmcppot
-	url = /afs/ece.cmu.edu/project/abstract/repos/libmcppot
+	url = https://github.com/CMUAbstract/libmcppot
 [submodule "ext/libchain"]
 	path = ext/libchain
-	url = /afs/ece.cmu.edu/project/abstract/repos/libchain
+	url = https://github.com/CMUAbstract/libchain
 [submodule "ext/libmspuartlink"]
 	path = ext/libmspuartlink
-	url = /afs/ece.cmu.edu/project/abstract/repos/libmspuartlink
+	url = https://github.com/CMUAbstract/libmspuartlink
 [submodule "ext/libfxl"]
 	path = ext/libfxl
-	url = /afs/ece.cmu.edu/project/abstract/repos/libfxl
+	url = https://github.com/CMUAbstract/libfxl
 [submodule "ext/libtemp"]
 	path = ext/libtemp
-	url = /afs/ece.cmu.edu/project/abstract/repos/libtemp
+	url = https://github.com/CMUAbstract/libtemp
