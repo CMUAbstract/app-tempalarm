@@ -460,6 +460,12 @@ void task_append()
 
         TRANSITION_TO(task_alarm);
     } else {
+
+        if (tmp_sample < TEMP_NORMAL_MIN)
+            LOG2("# t 0 age: %u\r\n", alarm_age);
+        else if (tmp_sample > TEMP_NORMAL_MAX)
+            LOG2("# t 1 age: %u\r\n", alarm_age);
+
         if (alarm_age <= MIN_ALARM_AGE) // cap it, this way we don't have to deal with overflow
             ++alarm_age;
         CHAN_OUT1(int, alarm_age, alarm_age, SELF_OUT_CH(task_append));
