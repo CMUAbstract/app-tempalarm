@@ -458,7 +458,12 @@ void task_append()
         int zero = 0;
         CHAN_OUT1(int, alarm_age, zero, SELF_OUT_CH(task_append));
 
+#if !defined(CONFIG_REF) && defined(CONFIG_CAP_RECONF)
+        capybara_config_banks(0x1);
+        TRANSITION_TO_AND_SHUTDOWN(task_alarm);
+#else // CONFIG_CAP_*
         TRANSITION_TO(task_alarm);
+#endif // CONFIG_CAP_*
     } else {
 
         if (tmp_sample < TEMP_NORMAL_MIN)
@@ -563,7 +568,11 @@ void task_alarm()
     // already configed to 0x0
 #endif // CONFIG_CAP_RECONF
 
+#if !defined(CONFIG_REF) && defined(CONFIG_CAP_RECONF)
+    TRANSITION_TO_AND_SHUTDOWN(task_sample);
+#else // CONFIG_CAP_*
     TRANSITION_TO(task_sample);
+#endif // CONFIG_CAP_*
 }
 
 #define _THIS_PORT 2
