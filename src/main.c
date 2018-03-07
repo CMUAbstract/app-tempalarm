@@ -143,7 +143,7 @@ static bool alarm_sent = false;
 
 static inline void radio_on()
 {
-#if BOARD_MAJOR == 1 && BOARD_MINOR == 0
+#if (BOARD_MAJOR == 1 && BOARD_MINOR == 0) || (BOARD_MAJOR == 2 && BOARD_MINOR == 0)
 
 #if PORT_RADIO_SW != PORT_RADIO_RST // we assume this below
 #error Unexpected pin config: RAD_SW and RAD_RST not on same port
@@ -168,7 +168,7 @@ static inline void radio_on()
 
 static inline void radio_off()
 {
-#if BOARD_MAJOR == 1 && BOARD_MINOR == 0
+#if (BOARD_MAJOR == 1 && BOARD_MINOR == 0) || (BOARD_MAJOR == 2 && BOARD_MINOR == 0)
     GPIO(PORT_RADIO_RST, OUT) |= BIT(PIN_RADIO_RST); // reset for clean(er) shutdown
     msp_sleep(RADIO_RST_CYCLES);
     GPIO(PORT_RADIO_SW, OUT) &= ~BIT(PIN_RADIO_SW);
@@ -371,6 +371,9 @@ int main() {
     fxl_out(BIT_RADIO_SW | BIT_RADIO_RST);
     fxl_pull_up(BIT_CCS_WAKE);
     // SENSE_SW is present but is not electrically correct: do not use.
+#elif BOARD_MAJOR == 2 && BOARD_MINOR == 0
+    GPIO(PORT_RADIO_SW, OUT) &= ~BIT(PIN_RADIO_SW);
+    GPIO(PORT_RADIO_SW, DIR) |= BIT(PIN_RADIO_SW);
 #else // BOARD_{MAJOR,MINOR}
 #error Unsupported board: do not know what pins to configure (see BOARD var)
 #endif // BOARD_{MAJOR,MINOR}
@@ -657,7 +660,7 @@ __attribute__ ((interrupt(GPIO_VECTOR(_THIS_PORT))))
 void  GPIO_ISR(_THIS_PORT) (void)
 {
     switch (__even_in_range(INTVEC(_THIS_PORT), INTVEC_RANGE(_THIS_PORT))) {
-#if BOARD_MAJOR == 1 && BOARD_MINOR == 1
+#if (BOARD_MAJOR == 1 && BOARD_MINOR == 1) || (BOARD_MAJOR == 2 && BOARD_MINOR == 0)
 #if LIBCAPYBARA_PORT_VBOOST_OK == _THIS_PORT
         case INTFLAG(LIBCAPYBARA_PORT_VBOOST_OK, LIBCAPYBARA_PIN_VBOOST_OK):
             capybara_vboost_ok_isr();
