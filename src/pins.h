@@ -5,6 +5,11 @@
 #define PIN_LOAD  4
 
 #if BOARD_MAJOR == 1 && BOARD_MINOR == 0
+#define PORT_DBG 3
+#define PIN_DBG0 5
+#define PIN_DBG1 6
+#define PIN_DBG2 7
+
 #define PORT_SENSE_SW 3
 #define PIN_SENSE_SW  7
 

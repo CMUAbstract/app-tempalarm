@@ -288,35 +288,35 @@ int main() {
     msp_gpio_unlock();
 
     // TEMPORARY: debug pin
-    P3OUT &= ~(BIT5 | BIT6 | BIT7);
-    P3DIR |= BIT5 | BIT6 | BIT7;
+    GPIO(PORT_DBG, OUT) &= ~(BIT(PIN_DBG0) | BIT(PIN_DBG1) | BIT(PIN_DBG2));
+    GPIO(PORT_DBG, DIR) |= BIT(PIN_DBG0) | BIT(PIN_DBG1) | BIT(PIN_DBG2);
 
-    P3OUT |= BIT5;
+    GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG0);
 
     __enable_interrupt();
 
 #ifndef CONFIG_REF // TEMP: don't wait when testing on continuous power only!
-    P3OUT |= BIT5;
+    GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG0);
     capybara_wait_for_supply();
-    P3OUT &= ~BIT5;
+    GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG0);
 #endif // !CONFIG_REF
 
-    P3OUT |= BIT5;
+    GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG0);
     capybara_config_pins();
     msp_clock_setup();
-    P3OUT &= ~BIT5;
+    GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG0);
 
 #ifndef CONFIG_REF // TEMP: don't wait when testing on continuous power only!
 
-    P3OUT |= BIT5;
+    GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG0);
     // Setup deep discharge shutdown interrupt before reconfiguring banks,
     // so that if we deep discharge during reconfiguration, we still at
     // least try to avoid cold start. NOTE: this is controversial.
     cb_rc_t deep_discharge_status = capybara_shutdown_on_deep_discharge();
-    P3OUT &= ~BIT5;
+    GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG0);
 
     // TODO: do it here?
-    P3OUT |= BIT5;
+    GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG0);
 #if defined(CONFIG_CAP_RECONF)
     capybara_config_banks(0x0);
 #elif defined(CONFIG_CAP_BIG)
@@ -324,7 +324,7 @@ int main() {
 #elif defined(CONFIG_CAP_SMALL)
     capybara_config_banks(0x0);
 #endif // CONFIG_*
-    P3OUT &= ~BIT5;
+    GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG0);
 
     // We still want to attempt reconfiguration, no matter how low Vcap
     // is, because otherwise we'd never be able to reconfigure. But, we
@@ -336,13 +336,13 @@ int main() {
     if (deep_discharge_status == CB_ERROR_ALREADY_DEEPLY_DISCHARGED)
         capybara_shutdown();
 
-    P3OUT |= BIT5;
+    GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG0);
     capybara_wait_for_supply();
-    P3OUT &= ~BIT5;
+    GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG0);
 
 #endif // !CONFIG_REF
 
-    P3OUT |= BIT5;
+    GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG0);
     INIT_CONSOLE();
     LOG2("TempAlarm v1.0\r\n");
 
@@ -358,9 +358,9 @@ int main() {
     GPIO(PORT_RADIO_SW, OUT) &= ~BIT(PIN_RADIO_SW);
     GPIO(PORT_RADIO_SW, DIR) |= BIT(PIN_RADIO_SW);
 #elif BOARD_MAJOR == 1 && BOARD_MINOR == 1
-    P3OUT &= ~BIT5;
+    GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG0);
 
-    P3OUT |= BIT5;
+    GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG0);
 
     LOG2("i2c init\r\n");
     i2c_setup();
@@ -375,7 +375,7 @@ int main() {
 #error Unsupported board: do not know what pins to configure (see BOARD var)
 #endif // BOARD_{MAJOR,MINOR}
 
-    P3OUT &= ~BIT5;
+    GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG0);
 
     LOG2(".%u.\r\n", curctx->task->idx);
 
@@ -405,22 +405,22 @@ void task_sample()
     int tmp_sample;
     int temp = 0;
     for (int i = 0; i < NUM_TEMP_SAMPLES; ++i) {
-        P3OUT |= BIT6;
+        GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG1);
 #if defined(TEMP_SENSOR_INTERNAL)
         tmp_sample = msp_sample_temperature();
 #elif defined(TEMP_SENSOR_EXTERNAL)
         tmp_sample = temp_sample();
 #endif // TEMP_SENSOR_*
-        P3OUT &= ~BIT6;
-        P3OUT |= BIT6;
+        GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG1);
+        GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG1);
         temp += tmp_sample;
         LOG2("temp %i\r\n", tmp_sample);
-        P3OUT &= ~BIT6;
+        GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG1);
     }
-    P3OUT |= BIT6;
+    GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG1);
     temp /= NUM_TEMP_SAMPLES;
     CHAN_OUT1(int, sample, temp, CH(task_sample, task_append));
-    P3OUT &= ~BIT6;
+    GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG1);
 
 #ifdef TIMESTAMPS // have to timestamp and output in this task to correlate with sample
     uint32_t timestamp = msp_ticks();
@@ -542,13 +542,13 @@ void task_delay() {
     capybara_transition();
 #endif // CONFIG_CAP_RECONF
 
-    //P3OUT |= BIT6;
+    //GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG1);
 #ifdef CONFIG_REF
     msp_sleep(500); // 125ms
 #else // !CONFIG_REF
     //msp_sleep(16); // 4ms
 #endif // !CONFIG_REF
-    //P3OUT &= BIT6;
+    //GPIO(PORT_DBG, OUT) &= BIT(PIN_DBG1);
     TRANSITION_TO(task_sample);
 }
 
@@ -591,33 +591,33 @@ void task_alarm()
         LOG2("%i ", (int)radio_pkt.series[j]);
     LOG2("\r\n");
 
-    P3OUT |= BIT7;
+    GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG2);
     radio_on();
 
-    P3OUT &= ~BIT7;
-    P3OUT |= BIT7;
+    GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG2);
+    GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG2);
 
     msp_sleep(RADIO_BOOT_CYCLES); // ~15ms @ ACLK/8
 
-    P3OUT &= ~BIT7;
-    P3OUT |= BIT7;
+    GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG2);
+    GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG2);
 
     uartlink_open_tx();
     uartlink_send((uint8_t *)&radio_pkt.cmd,
                    sizeof(radio_pkt.cmd) + 1 /* alarm type */ + 1 /* alarm seq */ + len);
     uartlink_close();
 
-    P3OUT &= ~BIT7;
-    P3OUT |= BIT7;
+    GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG2);
+    GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG2);
 
     // TODO: wait until radio is finished; for now, wait blindly
     msp_sleep(RADIO_ON_CYCLES);
 
-    P3OUT &= ~BIT7;
-    P3OUT |= BIT7;
+    GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG2);
+    GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG2);
 
     radio_off();
-    P3OUT &= ~BIT7;
+    GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG2);
 
 #ifdef CONFIG_CAP_RECONF
     capybara_config_banks(0x0);
