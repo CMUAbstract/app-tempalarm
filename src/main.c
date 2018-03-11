@@ -638,8 +638,7 @@ void task_alarm()
 }
 
 #define _THIS_PORT 2
-__attribute__ ((interrupt(GPIO_VECTOR(_THIS_PORT))))
-void  GPIO_ISR(_THIS_PORT) (void)
+ISR(GPIO_VECTOR(_THIS_PORT))
 {
     switch (__even_in_range(INTVEC(_THIS_PORT), INTVEC_RANGE(_THIS_PORT))) {
 #if BOARD_MAJOR == 1 && BOARD_MINOR == 0
@@ -656,8 +655,7 @@ void  GPIO_ISR(_THIS_PORT) (void)
 #undef _THIS_PORT
 
 #define _THIS_PORT 3
-__attribute__ ((interrupt(GPIO_VECTOR(_THIS_PORT))))
-void  GPIO_ISR(_THIS_PORT) (void)
+ISR(GPIO_VECTOR(_THIS_PORT))
 {
     switch (__even_in_range(INTVEC(_THIS_PORT), INTVEC_RANGE(_THIS_PORT))) {
 #if (BOARD_MAJOR == 1 && BOARD_MINOR == 1) || (BOARD_MAJOR == 2 && BOARD_MINOR == 0)
