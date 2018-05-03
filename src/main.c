@@ -287,6 +287,12 @@ int main() {
     msp_watchdog_disable();
     msp_gpio_unlock();
 
+#if 0
+    while (1) {
+        __bis_SR_register(LPM4_bits);
+    }
+#endif
+
     // TEMPORARY: debug pin
     GPIO(PORT_DBG, OUT) &= ~(BIT(PIN_DBG0) | BIT(PIN_DBG1) | BIT(PIN_DBG2));
     GPIO(PORT_DBG, DIR) |= BIT(PIN_DBG0) | BIT(PIN_DBG1) | BIT(PIN_DBG2);
@@ -315,6 +321,7 @@ int main() {
     cb_rc_t deep_discharge_status = capybara_shutdown_on_deep_discharge();
     GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG0);
 
+#if 0
     // TODO: do it here?
     GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG0);
 #if defined(CONFIG_CAP_RECONF)
@@ -325,6 +332,7 @@ int main() {
     capybara_config_banks(0x0);
 #endif // CONFIG_*
     GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG0);
+#endif
 
     // We still want to attempt reconfiguration, no matter how low Vcap
     // is, because otherwise we'd never be able to reconfigure. But, we
@@ -341,6 +349,12 @@ int main() {
     GPIO(PORT_DBG, OUT) &= ~BIT(PIN_DBG0);
 
 #endif // !CONFIG_REF
+
+#if 1
+    while (1) {
+        //__bis_SR_register(LPM4_bits);
+    }
+#endif
 
     GPIO(PORT_DBG, OUT) |= BIT(PIN_DBG0);
     INIT_CONSOLE();
